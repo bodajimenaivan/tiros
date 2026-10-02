@@ -3,25 +3,10 @@
 import * as THREE from 'three';
 import type { World } from '../sim/world';
 import { T_ALT, T_CLIFF, T_DEEP, T_HIGH, T_LOW, T_PATH, T_SHALLOW } from '../sim/map';
-import { detailTexture, noiseTexture, type DetailKind } from './textures';
+import { noiseTexture } from './textures';
+import { biomeLayers, buildTerrainLayers, type TerrainLayers } from './terrainMaterials';
 import { Noise2D } from '../core/noise';
 import { sharedUniforms } from './materials';
-
-const BIOME_DETAIL: Record<string, [DetailKind, DetailKind, DetailKind, DetailKind]> = {
-  desert: ['sand', 'rock', 'sand', 'path'],
-  ice: ['snow', 'rock', 'snow', 'gravel'],
-  forest: ['moss', 'rock', 'mud', 'path'],
-  grassland: ['grass', 'rock', 'sand', 'path'],
-  redrock: ['sand', 'rock', 'gravel', 'path'],
-  jungle: ['grass', 'rock', 'mud', 'path'],
-  volcanic: ['ash', 'rock', 'gravel', 'gravel'],
-  swamp: ['moss', 'rock', 'mud', 'mud'],
-  urban: ['metal', 'rock', 'metal', 'gravel'],
-  tropical: ['grass', 'rock', 'sand', 'sand'],
-  plains: ['grass', 'rock', 'sand', 'path'],
-  fungal: ['fungal', 'rock', 'mud', 'path'],
-  salt: ['salt', 'rock', 'gravel', 'path'],
-};
 
 export class TerrainRenderer {
   mesh: THREE.Mesh;
@@ -34,8 +19,9 @@ export class TerrainRenderer {
   private w: World;
   private N: number;
   private fogSmooth: Float32Array;
+  layers: TerrainLayers;
 
-  constructor(w: World, scene: THREE.Scene) {
+  constructor(w: World, scene: THREE.Scene, renderer: THREE.WebGLRenderer, quality: string) {
     this.w = w;
     const N = (this.N = w.map.w);
     const pl = w.planet;
@@ -68,9 +54,6 @@ export class TerrainRenderer {
     const noise = new Noise2D(w.setup.seed + 5);
     const noiseB = new Noise2D(w.setup.seed + 17);
     const tc = pl.terrain;
-    const cBase = new THREE.Color(tc.base), cAlt = new THREE.Color(tc.alt), cHigh = new THREE.Color(tc.high);
-    const cLow = new THREE.Color(tc.low), cCliff = new THREE.Color(tc.cliff), cPath = new THREE.Color(tc.path ?? tc.alt);
-    const cBed = new THREE.Color(m.liquid === 'lava' ? 0x1a0e08 : m.liquid === 'ice' ? 0xa8c8e0 : 0x5a5040).lerp(cLow, 0.3);
     const tmp = new THREE.Color();
     const hN = (x: number, y: number) => m.heights[Math.max(0, Math.min(N, y)) * (N + 1) + Math.max(0, Math.min(N, x))];
     for (let gy = 0; gy <= G; gy++) {
@@ -112,14 +95,11 @@ export class TerrainRenderer {
         const sum = wBase + wAlt + wHigh + wLow + wCliff + wPath + wBed;
         const nv = noise.fbm(vx * 0.15, vy * 0.15, 3);
         const nv2 = noise.fbm(vx * 0.03 + 9, vy * 0.03 + 4, 3);
-        tmp.setRGB(
-          (cBase.r * wBase + cAlt.r * wAlt + cHigh.r * wHigh + cLow.r * wLow + cCliff.r * wCliff + cPath.r * wPath + cBed.r * wBed) / sum,
-          (cBase.g * wBase + cAlt.g * wAlt + cHigh.g * wHigh + cLow.g * wLow + cCliff.g * wCliff + cPath.g * wPath + cBed.g * wBed) / sum,
-          (cBase.b * wBase + cAlt.b * wAlt + cHigh.b * wHigh + cLow.b * wLow + cCliff.b * wCliff + cPath.b * wPath + cBed.b * wBed) / sum,
-        );
-        // variación de color a dos escalas (manchas de color, como hierba seca / arena oscura)
-        tmp.multiplyScalar(1 + nv * 0.14 + nv2 * 0.12);
-        tmp.offsetHSL(nv2 * 0.015, nv * 0.05, 0);
+        // el color viene de las capas de material; aquí solo variación de brillo y oclusión
+        tmp.setRGB(1, 1, 1);
+        tmp.multiplyScalar(1 + nv * 0.08 + nv2 * 0.08);
+        // lecho de ríos y lagos algo más oscuro
+        if (wBed > 0) tmp.multiplyScalar(1 - (wBed / sum) * 0.3);
         // oclusión aproximada por concavidad
         const avg = (hN(cxv - 2, cyv) + hN(cxv + 2, cyv) + hN(cxv, cyv - 2) + hN(cxv, cyv + 2)) / 4;
         const ao = inside ? Math.max(0.72, Math.min(1.08, 1 - (avg - h) * 0.18)) : 0.9;
@@ -146,18 +126,21 @@ export class TerrainRenderer {
     geo.setIndex(idx);
     geo.computeVertexNormals();
 
-    const kinds = BIOME_DETAIL[pl.biome] ?? BIOME_DETAIL.desert;
-    const seed = w.setup.seed;
-    const tex = kinds.map((k, i) => detailTexture(k, seed + i));
+    const specs = biomeLayers(pl.biome, tc);
+    this.layers = buildTerrainLayers(renderer, specs, quality === 'low' ? 512 : 1024, w.setup.seed);
+    const L = this.layers;
+    const macroTex = noiseTexture(w.setup.seed + 31, 4);
 
-    this.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: m.liquid === 'ice' || pl.biome === 'ice' ? 0.7 : 0.92, metalness: pl.biome === 'urban' ? 0.25 : 0.02 });
+    this.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: pl.biome === 'urban' ? 0.3 : 0.0, envMapIntensity: 0.45 });
     const fogTex = this.fogTex;
     const NN = N;
     this.material.onBeforeCompile = (shader) => {
-      shader.uniforms.tD0 = { value: tex[0] };
-      shader.uniforms.tD1 = { value: tex[1] };
-      shader.uniforms.tD2 = { value: tex[2] };
-      shader.uniforms.tD3 = { value: tex[3] };
+      for (let i = 0; i < 4; i++) {
+        shader.uniforms['tA' + i] = { value: L.albedo[i] };
+        shader.uniforms['tN' + i] = { value: L.normal[i] };
+      }
+      shader.uniforms.uScale = { value: new THREE.Vector4(...L.scale) };
+      shader.uniforms.tMacro = { value: macroTex };
       shader.uniforms.tFog = { value: fogTex };
       shader.uniforms.uN = { value: NN };
       shader.uniforms.uTime = sharedUniforms.uTime;
@@ -173,37 +156,78 @@ vWorld = (modelMatrix * vec4(position, 1.0)).xyz;
 vWN = normalize(mat3(modelMatrix) * normal);`);
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>
-uniform sampler2D tD0; uniform sampler2D tD1; uniform sampler2D tD2; uniform sampler2D tD3; uniform sampler2D tFog;
+uniform sampler2D tA0; uniform sampler2D tA1; uniform sampler2D tA2; uniform sampler2D tA3;
+uniform sampler2D tN0; uniform sampler2D tN1; uniform sampler2D tN2; uniform sampler2D tN3;
+uniform vec4 uScale; uniform sampler2D tMacro; uniform sampler2D tFog;
 uniform float uN; uniform float uTime;
 varying vec4 vSplat; varying vec3 vWorld; varying vec3 vWN;
-float detailAt(vec2 uv) {
-  vec4 s = vSplat;
-  float d0 = texture2D(tD0, uv * 0.22).r * 0.7 + texture2D(tD0, uv * 0.05).r * 0.3;
-  // roca triplanar sencilla
-  vec3 an = abs(vWN);
-  float r1 = texture2D(tD1, vWorld.xz * 0.18).r * an.y + texture2D(tD1, vWorld.xy * 0.18).r * an.z + texture2D(tD1, vWorld.zy * 0.18).r * an.x;
-  r1 /= (an.x + an.y + an.z);
-  float d2 = texture2D(tD2, uv * 0.25).r;
-  float d3 = texture2D(tD3, uv * 0.3).r;
-  float sum = s.x + s.y + s.z + s.w + 0.0001;
-  return (d0 * s.x + r1 * s.y + d2 * s.z + d3 * s.w) / sum;
-}`)
+vec2 tRot(vec2 p, float a) { float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
+// capa proyectada en planta con dos muestras (escala y giro distintos) para disimular la repetición
+void tLayer(sampler2D tA, sampler2D tN, float sc, vec2 wuv, float mk, out vec4 a, out vec3 off, out vec2 rn) {
+  vec2 uv1 = wuv * sc;
+  vec2 uv2 = tRot(wuv * sc * 0.43, 1.1) + 0.37;
+  vec4 a1 = texture2D(tA, uv1), a2 = texture2D(tA, uv2);
+  vec4 n1 = texture2D(tN, uv1), n2 = texture2D(tN, uv2);
+  float k = clamp(0.25 + (mk - 0.5) * 1.4, 0.0, 0.75);
+  a = mix(a1, a2, k);
+  vec2 d1 = n1.xy * 2.0 - 1.0;
+  vec2 d2 = tRot(n2.xy * 2.0 - 1.0, -1.1);
+  vec2 d = mix(d1, d2, k);
+  off = vec3(d.x, 0.0, d.y);
+  rn = mix(n1.zw, n2.zw, k);
+}
+vec3 tNw; float tRough; float tAO;`)
         .replace('#include <color_fragment>', `#include <color_fragment>
-vec2 uvw = vWorld.xz;
-float dt = detailAt(uvw);
-// pendiente pronunciada -> roca
-float slope = 1.0 - clamp(vWN.y, 0.0, 1.0);
-diffuseColor.rgb *= 0.55 + dt * 0.9;
-diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.82, smoothstep(0.35, 0.7, slope));`)
-        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
 {
-  // relieve derivado de la textura de detalle
-  float h0 = dt;
-  vec2 dx = dFdx(uvw), dy = dFdy(uvw);
-  float hx = dFdx(h0), hy = dFdy(h0);
-  vec3 bump = vec3(-hx * 2.2, -hy * 2.2, 0.0);
-  normal = normalize(normal + (bump.x * normalize(vec3(viewMatrix * vec4(1.0, 0.0, 0.0, 0.0))) + bump.y * normalize(vec3(viewMatrix * vec4(0.0, 0.0, 1.0, 0.0)))) * 0.6);
+  vec2 wuv = vWorld.xz;
+  vec3 Ng = normalize(vWN);
+  float mk = texture2D(tMacro, wuv * 0.021).r;
+  float mk2 = texture2D(tMacro, wuv * 0.0063 + 0.5).g;
+  vec4 s = vSplat;
+  float slope = 1.0 - Ng.y;
+  float rockK = smoothstep(0.32, 0.62, slope);
+  s.y += rockK * 2.5;
+  s.xzw *= 1.0 - rockK * 0.85;
+  vec4 a0 = vec4(0.0), a1 = vec4(0.0), a2 = vec4(0.0), a3 = vec4(0.0);
+  vec3 o0 = vec3(0.0), o1 = vec3(0.0), o2 = vec3(0.0), o3 = vec3(0.0);
+  vec2 r0 = vec2(0.9, 1.0), r1 = vec2(0.9, 1.0), r2 = vec2(0.9, 1.0), r3 = vec2(0.9, 1.0);
+  if (s.x > 0.001) tLayer(tA0, tN0, uScale.x, wuv, mk, a0, o0, r0);
+  if (s.z > 0.001) tLayer(tA2, tN2, uScale.z, wuv, mk, a2, o2, r2);
+  if (s.w > 0.001) tLayer(tA3, tN3, uScale.w, wuv, mk, a3, o3, r3);
+  if (s.y > 0.001) {
+    // roca: proyección triplanar (acantilados)
+    vec3 bw = pow(abs(Ng), vec3(4.0));
+    bw /= (bw.x + bw.y + bw.z);
+    float sc = uScale.y;
+    vec4 ax = texture2D(tA1, vWorld.zy * sc), ay = texture2D(tA1, vWorld.xz * sc), az = texture2D(tA1, vWorld.xy * sc);
+    vec4 nx = texture2D(tN1, vWorld.zy * sc), ny = texture2D(tN1, vWorld.xz * sc), nz = texture2D(tN1, vWorld.xy * sc);
+    a1 = ax * bw.x + ay * bw.y + az * bw.z;
+    vec2 dx = nx.xy * 2.0 - 1.0, dy = ny.xy * 2.0 - 1.0, dz = nz.xy * 2.0 - 1.0;
+    o1 = vec3(0.0, dx.y, dx.x) * bw.x + vec3(dy.x, 0.0, dy.y) * bw.y + vec3(dz.x, dz.y, 0.0) * bw.z;
+    r1 = nx.zw * bw.x + ny.zw * bw.y + nz.zw * bw.z;
+  }
+  // mezcla por alturas: las piedras asoman sobre la arena, la hierba sobre la tierra...
+  vec4 hgt = vec4(a0.a, a1.a, a2.a, a3.a);
+  vec4 pres = step(vec4(0.001), s);
+  vec4 hb = s + hgt * 0.55 * pres;
+  float mx = max(max(hb.x, hb.y), max(hb.z, hb.w)) - 0.2;
+  vec4 wv = max(hb - mx, 0.0) * pres;
+  wv /= (wv.x + wv.y + wv.z + wv.w + 1e-4);
+  vec3 alb = a0.rgb * wv.x + a1.rgb * wv.y + a2.rgb * wv.z + a3.rgb * wv.w;
+  vec3 off = o0 * wv.x + o1 * wv.y + o2 * wv.z + o3 * wv.w;
+  vec2 rn = r0 * wv.x + r1 * wv.y + r2 * wv.z + r3 * wv.w;
+  // variación de color a gran escala
+  alb *= 0.84 + mk2 * 0.32;
+  alb = mix(alb, alb * vec3(1.06, 1.0, 0.92), smoothstep(0.55, 0.8, mk) * 0.6);
+  diffuseColor.rgb *= alb * mix(1.0, rn.y, 0.85);
+  tNw = normalize(Ng + off * 0.9);
+  tRough = rn.x;
+  tAO = rn.y;
 }`)
+        .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+roughnessFactor = tRough;`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+normal = normalize((viewMatrix * vec4(tNw, 0.0)).xyz);`)
         .replace('#include <dithering_fragment>', `#include <dithering_fragment>
 {
   vec2 fuv = clamp(vWorld.xz, 0.5, uN - 0.5) / uN;
@@ -218,7 +242,7 @@ diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.82, smoothstep(0.3
   gl_FragColor.rgb *= f;
 }`);
     };
-    this.material.customProgramCacheKey = () => 'swTerrain1';
+    this.material.customProgramCacheKey = () => 'swTerrain2';
     this.mesh = new THREE.Mesh(geo, this.material);
     this.mesh.receiveShadow = true;
     this.mesh.castShadow = false;

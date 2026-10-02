@@ -5,6 +5,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { N8AOPass } from 'n8ao';
 import type { World } from '../sim/world';
 import { TICK } from '../sim/world';
 import type { Entity } from '../sim/entity';
@@ -63,6 +64,7 @@ export class GameRenderer {
   camera: THREE.PerspectiveCamera;
   composer: EffectComposer | null = null;
   bloom: UnrealBloomPass | null = null;
+  aoPass: any = null;
   terrain: TerrainRenderer;
   cover: GroundCover;
   effects: Effects;
@@ -149,7 +151,7 @@ export class GameRenderer {
     this.scene.add(amb);
 
     // ── Terreno ──
-    this.terrain = new TerrainRenderer(w, this.scene);
+    this.terrain = new TerrainRenderer(w, this.scene, this.renderer, settings.quality);
     this.cover = new GroundCover(w, this.terrain.fogTex, settings.quality);
     this.scene.add(this.cover.group);
 
@@ -251,7 +253,20 @@ export class GameRenderer {
     }
     const rt = new THREE.WebGLRenderTarget(16, 16, { type: THREE.HalfFloatType, samples: s.quality === 'medium' ? 2 : 4 });
     this.composer = new EffectComposer(this.renderer, rt);
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    if (s.quality === 'high' || s.quality === 'ultra') {
+      // oclusión ambiental en pantalla: sombras de contacto entre unidades, edificios y suelo
+      const ao = new N8AOPass(this.scene, this.camera, 512, 512);
+      ao.configuration.aoRadius = 2.6;
+      ao.configuration.distanceFalloff = 1.0;
+      ao.configuration.intensity = 4.5;
+      ao.configuration.halfRes = s.quality === 'high';
+      ao.configuration.aoSamples = s.quality === 'ultra' ? 16 : 8;
+      ao.configuration.denoiseSamples = s.quality === 'ultra' ? 8 : 4;
+      ao.configuration.denoiseRadius = 8;
+      ao.configuration.gammaCorrection = false;
+      this.aoPass = ao;
+      this.composer.addPass(ao);
+    } else this.composer.addPass(new RenderPass(this.scene, this.camera));
     if (s.bloom) {
       this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.4, 0.92);
       this.composer.addPass(this.bloom);
@@ -1013,6 +1028,7 @@ export class GameRenderer {
 
   dispose() {
     this.cover.dispose();
+    this.terrain.layers.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
