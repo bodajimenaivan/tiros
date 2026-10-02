@@ -402,7 +402,7 @@ export function optionsScreen(parent: HTMLElement, onBack: () => void) {
     return h('div', { class: 'form-row' }, h('label', null, label), x);
   };
   panel.appendChild(h('h2', null, 'Gráficos'));
-  panel.appendChild(sel('Calidad', [['low', 'Baja (sin post-procesado)'], ['medium', 'Media'], ['high', 'Alta'], ['ultra', 'Ultra (sombras 4K)']], s.quality, (v) => saveSettings({ quality: v as any })));
+  panel.appendChild(sel('Calidad', [['low', 'Baja (sin post-procesado ni hierba)'], ['medium', 'Media (hierba reducida)'], ['high', 'Alta'], ['ultra', 'Ultra (sombras 4K, más vegetación)']], s.quality, (v) => saveSettings({ quality: v as any })));
   panel.appendChild(chk('Sombras', s.shadows, (v) => saveSettings({ shadows: v })));
   panel.appendChild(chk('Resplandor (bloom)', s.bloom, (v) => saveSettings({ bloom: v })));
   panel.appendChild(sel('Resolución de render', [['0.6', '60%'], ['0.8', '80%'], ['1', '100%']], String(s.pixelRatio), (v) => saveSettings({ pixelRatio: Number(v) })));
