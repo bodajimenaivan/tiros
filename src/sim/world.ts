@@ -688,6 +688,7 @@ export class World {
       e.path = [{ x, y }];
       e.pathIdx = 0;
       e.pathPending = false;
+      e.pathPartial = false;
       return;
     }
     (e as any)._goal = goal ? goal.id : 0;
@@ -816,11 +817,13 @@ export class World {
         continue;
       }
       const opts = this.pathOpts(e, goal && goal.alive ? this.goalOpts(goal) : undefined);
-      opts.maxNodes = 8000;
+      opts.maxNodes = 24000;
       const path = this.pf.find(e.x, e.y, adj.x, adj.y, opts);
       e.path = path;
       e.pathIdx = 0;
       e.inGoal = false;
+      e.pathPartial = !!path && this.pf.lastPartial;
+      if (!e.pathPartial) e.partialTries = 0;
       if (path && path.length === 0) {
         e.path = null;
         e.inGoal = true;
@@ -1164,6 +1167,8 @@ export class World {
     e.pathPending = false;
     e.targetId = o?.targetId ?? 0;
     e.stuckTime = 0;
+    e.pathPartial = false;
+    e.partialTries = 0;
     e.convertProgress = 0;
     e.idleTime = 0;
     if (o && (o.type === 'move' || o.type === 'attackMove')) {

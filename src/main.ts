@@ -5,6 +5,7 @@ import '@fontsource/orbitron/latin-900.css';
 import '@fontsource/exo-2/latin-400.css';
 import '@fontsource/exo-2/latin-600.css';
 import './ui/styles.css';
+import { enterFullscreen } from './ui/fullscreen';
 import { MainMenu, SkirmishScreen, showCrawl, instantSetup, optionsScreen, creditsScreen } from './ui/screens';
 import { encyclopedia } from './ui/encyclopedia';
 import { GameSession } from './game';
@@ -57,6 +58,7 @@ function showMenu() {
 }
 
 function launch(setup: GameSetup, after: () => void, onResult?: (win: boolean) => void) {
+  if (settings().fullscreen) enterFullscreen();
   clearApp();
   audio.setAmbience(setup.planet ? (await_planet_biome(setup.planet)) : '');
   const s = new GameSession(app, setup, (r) => {

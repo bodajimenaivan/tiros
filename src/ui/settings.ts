@@ -9,6 +9,7 @@ export interface Settings {
   voices: boolean;
   gameSpeed: number;
   edgeScroll: boolean;
+  fullscreen: boolean;
   scrollSpeed: number;
   alwaysHealth: boolean;
   playerName: string;
@@ -16,7 +17,7 @@ export interface Settings {
 }
 
 const DEFAULTS: Settings = {
-  quality: 'high', shadows: true, bloom: true, pixelRatio: 1, music: 0.55, sfx: 0.75, voices: true, gameSpeed: 1.5, edgeScroll: true, scrollSpeed: 1,
+  quality: 'high', shadows: true, bloom: true, pixelRatio: 1, music: 0.55, sfx: 0.75, voices: true, gameSpeed: 1.5, edgeScroll: true, fullscreen: true, scrollSpeed: 1,
   alwaysHealth: false, playerName: 'Comandante', introSeen: false,
 };
 

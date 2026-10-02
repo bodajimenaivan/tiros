@@ -46,8 +46,31 @@ export class InputController {
     this.el.addEventListener('dblclick', this.onDbl);
     window.addEventListener('keydown', this.onKey);
     window.addEventListener('keyup', this.onKeyUp);
-    document.addEventListener('mouseleave', () => (this.mouseInside = false));
+    window.addEventListener('mouseout', this.onOut);
+    window.addEventListener('blur', this.onBlur);
   }
+
+  /** Dirección de desplazamiento cuando el ratón sale de la ventana por un borde (navegador en ventana). */
+  private edgeHoldX = 0;
+  private edgeHoldY = 0;
+
+  private onOut = (e: MouseEvent) => {
+    if (e.relatedTarget) return; // sigue dentro del documento
+    this.mouseInside = false;
+    const W = innerWidth, H = innerHeight;
+    const dl = e.clientX, dr = W - e.clientX, dt = e.clientY, db = H - e.clientY;
+    const near = Math.min(dl, dr, dt, db);
+    // el borde por el que salió (el más cercano) y, en una esquina, también el contiguo
+    const lim = Math.max(near, 0) + 48;
+    this.edgeHoldX = dl <= lim && dl <= dr ? -1 : dr <= lim ? 1 : 0;
+    this.edgeHoldY = dt <= lim && dt <= db ? -1 : db <= lim ? 1 : 0;
+  };
+
+  private onBlur = () => {
+    this.mouseInside = false;
+    this.edgeHoldX = this.edgeHoldY = 0;
+    this.keys.clear();
+  };
 
   get w() {
     return this.s.world;
@@ -128,6 +151,7 @@ export class InputController {
 
   private onMove = (e: MouseEvent) => {
     this.mouseInside = true;
+    this.edgeHoldX = this.edgeHoldY = 0;
     const r = this.el.getBoundingClientRect();
     this.mouseX = e.clientX - r.left;
     this.mouseY = e.clientY - r.top;
@@ -499,13 +523,19 @@ export class InputController {
     if (this.keys.has('ArrowDown')) dy += sp;
     if (this.keys.has('Home')) r.rotate(dt * 1.2);
     if (this.keys.has('End')) r.rotate(-dt * 1.2);
-    if (settings().edgeScroll && this.mouseInside && !this.leftDown && !this.s.hud.isModalOpen()) {
-      const W = this.el.clientWidth, H = this.el.clientHeight;
-      const m = 6;
-      if (this.mouseX <= m) dx -= sp;
-      if (this.mouseX >= W - m) dx += sp;
-      if (this.mouseY <= m) dy -= sp;
-      if (this.mouseY >= H - m) dy += sp;
+    if (settings().edgeScroll && !this.leftDown && !this.midDown && !this.s.hud.isModalOpen()) {
+      if (this.mouseInside) {
+        const W = this.el.clientWidth, H = this.el.clientHeight;
+        const m = 12;
+        if (this.mouseX <= m) dx -= sp;
+        if (this.mouseX >= W - m) dx += sp;
+        if (this.mouseY <= m) dy -= sp;
+        if (this.mouseY >= H - m) dy += sp;
+      } else if (document.hasFocus()) {
+        // el ratón salió por un borde (barra de pestañas, barra de tareas...): seguir desplazando
+        dx += this.edgeHoldX * sp;
+        dy += this.edgeHoldY * sp;
+      }
     }
     if (dx || dy) r.pan(dx, dy);
     // hover
@@ -549,5 +579,7 @@ export class InputController {
     window.removeEventListener('mousemove', this.onMove);
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('keyup', this.onKeyUp);
+    window.removeEventListener('mouseout', this.onOut);
+    window.removeEventListener('blur', this.onBlur);
   }
 }

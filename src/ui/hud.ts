@@ -1,4 +1,5 @@
 // HUD de partida al estilo Age of Empires: barra de recursos, panel de órdenes, selección, minimapa.
+import { isFullscreen, toggleFullscreen } from './fullscreen';
 import type { GameSession } from '../game';
 import { h, clear, fmtTime } from './dom';
 import { portrait, svgIcon, resIcon } from './icons';
@@ -737,6 +738,7 @@ export class Hud {
       h('h2', null, 'Pausa'),
       h('button', { class: 'btn primary', onclick: () => { this.closeModal(); if (this.s.paused) this.s.togglePause(); } }, 'Continuar'),
       h('button', { class: 'btn', onclick: () => this.openOptions() }, 'Opciones'),
+      h('button', { class: 'btn', onclick: () => { toggleFullscreen(); this.closeModal(); if (this.s.paused) this.s.togglePause(); } }, isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa'),
       h('button', { class: 'btn', onclick: () => this.openHelp() }, 'Controles'),
       h('button', { class: 'btn', onclick: () => { this.closeModal(); this.s.resign(); if (this.s.paused) this.s.togglePause(); } }, 'Rendirse'),
       h('button', { class: 'btn', onclick: () => this.s.quit() }, 'Salir al menú principal'),

@@ -72,6 +72,8 @@ export class GameRenderer {
   // cámara RTS
   camTarget = new THREE.Vector3();
   camDist = 26;
+  private maxSurface = -1;
+  private minSurface = 0;
   camYaw = Math.PI / 4;
   camPitch = 0.95;
   revealAll = false;
@@ -746,26 +748,40 @@ export class GameRenderer {
     const ndc = new THREE.Vector2((mx / el.clientWidth) * 2 - 1, -(my / el.clientHeight) * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
     const ro = this.raycaster.ray.origin, rd = this.raycaster.ray.direction;
-    // marcha sobre el mapa de alturas
-    let t = 0;
+    // marcha sobre el mapa de alturas, empezando donde el rayo baja de la cota máxima del terreno
     const m = this.w.map;
-    for (let i = 0; i < 400; i++) {
+    if (this.maxSurface < 0) {
+      let mx2 = 0, mn2 = 1e9;
+      for (const hv of m.heights) {
+        if (hv > mx2) mx2 = hv;
+        if (hv < mn2) mn2 = hv;
+      }
+      this.maxSurface = Math.max(mx2, m.waterLevel ?? 0) + 0.5;
+      this.minSurface = Math.min(mn2, m.waterLevel ?? 0) - 0.5;
+    }
+    if (rd.y >= -1e-4) return null;
+    let t = Math.max(0, (ro.y - this.maxSurface) / -rd.y);
+    const tEnd = (ro.y - this.minSurface) / -rd.y + 0.5;
+    const surf = (x: number, z: number) => m.surfaceAt(Math.max(0, Math.min(m.w - 0.01, x)), Math.max(0, Math.min(m.h - 0.01, z)));
+    const step = 0.3;
+    for (let i = 0; i < 4000 && t <= tEnd; i++) {
       const px = ro.x + rd.x * t, py = ro.y + rd.y * t, pz = ro.z + rd.z * t;
-      const h = m.surfaceAt(Math.max(0, Math.min(m.w - 0.01, px)), Math.max(0, Math.min(m.h - 0.01, pz)));
-      if (py <= h) {
+      if (py <= surf(px, pz)) {
         // refinar
-        let a = t - 0.5, b = t;
-        for (let k = 0; k < 8; k++) {
+        let a = Math.max(0, t - step), b = t;
+        for (let k = 0; k < 10; k++) {
           const mid = (a + b) / 2;
           const qx = ro.x + rd.x * mid, qy = ro.y + rd.y * mid, qz = ro.z + rd.z * mid;
-          if (qy <= m.surfaceAt(Math.max(0, Math.min(m.w - 0.01, qx)), Math.max(0, Math.min(m.h - 0.01, qz)))) b = mid;
+          if (qy <= surf(qx, qz)) b = mid;
           else a = mid;
         }
-        return { x: ro.x + rd.x * b, y: ro.z + rd.z * b };
+        return { x: Math.max(0.5, Math.min(m.w - 0.5, ro.x + rd.x * b)), y: Math.max(0.5, Math.min(m.h - 0.5, ro.z + rd.z * b)) };
       }
-      t += 0.5;
+      t += step;
     }
-    return null;
+    // sin intersección (fuera del mapa): punto en el plano medio, recortado al mapa
+    const tp = (ro.y - (this.maxSurface + this.minSurface) / 2) / -rd.y;
+    return { x: Math.max(0.5, Math.min(m.w - 0.5, ro.x + rd.x * tp)), y: Math.max(0.5, Math.min(m.h - 0.5, ro.z + rd.z * tp)) };
   }
 
   /** Entidad bajo el cursor (unidades priorizadas sobre edificios y recursos) */

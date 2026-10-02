@@ -114,8 +114,14 @@ export class Entity {
   lastRepath = 0;
   progressCheckT = 0;
   progressCheckD = 0;
+  /** Waypoint (camino + índice) al que se refiere progressCheckD */
+  progressPath: unknown = null;
+  progressIdx = -1;
   explicitTarget = false;
   inGoal = false;
+  /** El último camino era parcial (A* no llegó al destino): al terminarlo hay que seguir buscando */
+  pathPartial = false;
+  partialTries = 0;
   garrisonedIn = 0; // unidad dentro de un edificio
   garrison: number[] = []; // edificio: unidades guarnecidas
   unreachable = 0; // máscara de jugadores que no pueden alcanzar este recurso/animal

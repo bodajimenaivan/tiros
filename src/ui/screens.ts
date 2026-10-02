@@ -181,6 +181,7 @@ export class SkirmishScreen {
   private playersBox!: HTMLElement;
   private civInfo!: HTMLElement;
   private planetDesc!: HTMLElement;
+  private sizeSel!: HTMLSelectElement;
 
   constructor(parent: HTMLElement, onBack: () => void, onStart: (s: GameSetup) => void) {
     const saved = loadSkirmish();
@@ -194,9 +195,9 @@ export class SkirmishScreen {
     this.root = h('div', { class: 'screen' });
     this.root.appendChild(h('h1', null, 'Escaramuza'));
     this.root.appendChild(h('div', { class: 'subtitle' }, 'Configura un conflicto local en el mundo que elijas.'));
-    const body = h('div', { class: 'screen-body' });
+    const body = h('div', { class: 'skirmish-body' });
     // planetas
-    const left = h('div', { class: 'panel', style: 'width:38%;display:flex;flex-direction:column;min-height:0' }, h('h2', null, 'Mundo'));
+    const left = h('div', { class: 'panel col-panel' }, h('h2', null, 'Mundo'));
     const grid = h('div', { class: 'planet-grid' });
     for (const p of PLANET_LIST) {
       const card = h('div', { class: 'planet-card' + (p.id === this.st.planet ? ' sel' : '') }, planetPreview(p.id), h('div', { class: 'pn' }, p.name));
@@ -213,26 +214,29 @@ export class SkirmishScreen {
     this.planetDesc = h('div', { class: 'planet-desc' }, PLANETS[this.st.planet].desc);
     left.appendChild(this.planetDesc);
     // jugadores y opciones
-    const right = h('div', { style: 'flex:1;display:flex;flex-direction:column;gap:16px;min-width:0' });
-    const pp = h('div', { class: 'panel' }, h('h2', null, 'Jugadores'));
-    this.playersBox = h('div');
+    const right = h('div', { class: 'skirmish-right' });
+    const pp = h('div', { class: 'panel players-panel' }, h('h2', null, 'Jugadores'));
+    this.playersBox = h('div', { class: 'players-scroll' });
     pp.appendChild(this.playersBox);
-    pp.appendChild(h('div', { style: 'margin-top:8px;display:flex;gap:8px' },
+    pp.appendChild(h('div', { style: 'margin-top:8px;display:flex;gap:8px;flex-wrap:wrap' },
       h('button', { class: 'btn small', onclick: () => this.addPlayer() }, '+ Añadir jugador'),
       h('button', { class: 'btn small', onclick: () => this.removePlayer() }, '− Quitar jugador'),
       h('button', { class: 'btn small', onclick: () => this.shuffleTeams() }, 'Equipos aleatorios'),
     ));
     right.appendChild(pp);
-    const opts = h('div', { class: 'panel', style: 'display:flex;gap:24px' });
-    const col1 = h('div', { style: 'flex:1' }, h('h2', null, 'Partida'));
-    const col2 = h('div', { style: 'flex:1' });
-    this.civInfo = h('div', { class: 'civ-info', style: 'flex:1.2' });
+    const lower = h('div', { class: 'skirmish-lower' });
+    const opts = h('div', { class: 'panel opts-panel' });
+    const col1 = h('div', null, h('h2', null, 'Partida'));
+    const col2 = h('div');
+    this.civInfo = h('div', { class: 'panel civ-info' });
     const sel = (label: string, opts2: [string, string][], val: string, on: (v: string) => void) => {
       const s = h('select', null, ...opts2.map(([v, l]) => h('option', { value: v, selected: v === val ? 'selected' : null }, l))) as HTMLSelectElement;
       s.addEventListener('change', () => on(s.value));
       return h('div', { class: 'form-row' }, h('label', null, label), s);
     };
-    col1.appendChild(sel('Tamaño del mapa', Object.entries(MAP_SIZES).map(([k, v]) => [k, v.name]), this.st.size, (v) => (this.st.size = v as MapSize)));
+    const sizeRow = sel('Tamaño del mapa', Object.entries(MAP_SIZES).map(([k, v]) => [k, v.name]), this.st.size, (v) => (this.st.size = v as MapSize));
+    this.sizeSel = sizeRow.querySelector('select') as HTMLSelectElement;
+    col1.appendChild(sizeRow);
     col1.appendChild(sel('Recursos iniciales', Object.entries(START_RES).map(([k, v]) => [k, v.name]), this.st.startRes, (v) => (this.st.startRes = v as StartRes)));
     col1.appendChild(sel('Era inicial', [['1', 'Era Fronteriza'], ['2', 'Era de Expansión'], ['3', 'Era de las Guerras'], ['4', 'Era Galáctica']], String(this.st.startEra), (v) => (this.st.startEra = Number(v) as Era)));
     col1.appendChild(sel('Población máxima', [['75', '75'], ['125', '125'], ['200', '200'], ['300', '300']], String(this.st.popMax), (v) => (this.st.popMax = Number(v))));
@@ -242,8 +246,9 @@ export class SkirmishScreen {
     col2.appendChild(sel('Tregua', [['0', 'Sin tregua'], ['5', '5 minutos'], ['10', '10 minutos'], ['20', '20 minutos']], String(this.st.treaty), (v) => (this.st.treaty = Number(v))));
     col2.appendChild(sel('Equipos bloqueados', [['1', 'Sí'], ['0', 'No (diplomacia libre)']], this.st.locked ? '1' : '0', (v) => (this.st.locked = v === '1')));
     col2.appendChild(sel('Velocidad', [['1', 'Lenta (1x)'], ['1.5', 'Normal (1.5x)'], ['2', 'Rápida (2x)'], ['3', 'Muy rápida (3x)']], String(this.st.speed), (v) => (this.st.speed = Number(v))));
-    opts.append(col1, col2, this.civInfo);
-    right.appendChild(opts);
+    opts.append(col1, col2);
+    lower.append(opts, this.civInfo);
+    right.appendChild(lower);
     body.append(left, right);
     this.root.appendChild(body);
     this.root.appendChild(h('div', { class: 'screen-actions' },
@@ -260,7 +265,7 @@ export class SkirmishScreen {
     const t = h('table', { class: 'players-table' });
     t.appendChild(h('tr', null, h('th', null, '#'), h('th', null, 'Nombre'), h('th', null, 'Control'), h('th', null, 'Civilización'), h('th', null, 'Color'), h('th', null, 'Equipo')));
     this.st.players.forEach((p, i) => {
-      const name = h('input', { type: 'text', value: p.name, style: 'width:130px' }) as HTMLInputElement;
+      const name = h('input', { type: 'text', value: p.name }) as HTMLInputElement;
       name.addEventListener('change', () => {
         p.name = name.value || p.name;
         if (p.human) saveSettings({ playerName: p.name });
@@ -308,7 +313,10 @@ export class SkirmishScreen {
     this.st.players.push({ name: CIVS[civ].short, civ, color, team: (this.st.players.length % 2) + 1, human: false, difficulty: 'normal' });
     if (this.st.players.length > MAP_SIZES[this.st.size].players) {
       const bigger = (Object.keys(MAP_SIZES) as MapSize[]).find((k) => MAP_SIZES[k].players >= this.st.players.length);
-      if (bigger) this.st.size = bigger;
+      if (bigger) {
+        this.st.size = bigger;
+        this.sizeSel.value = bigger;
+      }
     }
     this.renderPlayers();
   }
@@ -413,11 +421,12 @@ export function optionsScreen(parent: HTMLElement, onBack: () => void) {
   panel.appendChild(h('h2', { style: 'margin-top:14px' }, 'Juego'));
   panel.appendChild(range('Velocidad de cámara', s.scrollSpeed, 0.4, 2.5, 0.1, (v) => saveSettings({ scrollSpeed: v })));
   panel.appendChild(chk('Desplazamiento por bordes', s.edgeScroll, (v) => saveSettings({ edgeScroll: v })));
+  panel.appendChild(chk('Pantalla completa al jugar', s.fullscreen, (v) => saveSettings({ fullscreen: v })));
   panel.appendChild(chk('Barras de vida siempre visibles', s.alwaysHealth, (v) => saveSettings({ alwaysHealth: v })));
   const nm = h('input', { type: 'text', value: s.playerName }) as HTMLInputElement;
   nm.addEventListener('change', () => saveSettings({ playerName: nm.value || 'Comandante' }));
   panel.appendChild(h('div', { class: 'form-row' }, h('label', null, 'Nombre de comandante'), nm));
-  panel.appendChild(h('div', { class: 'planet-desc' }, 'Música propia: coloca archivos menu.mp3, heroic.mp3, dark.mp3, mystic.mp3, war.mp3, galaxy.mp3, victory.mp3 o defeat.mp3 en la carpeta "music" junto al juego y sustituirán a la banda sonora procedural.'));
+  panel.appendChild(h('div', { class: 'planet-desc' }, 'Música propia: coloca archivos menu.mp3, heroic.mp3, dark.mp3, mystic.mp3, war.mp3, galaxy.mp3, victory.mp3 o defeat.mp3 en la carpeta public/music del proyecto y ejecuta el juego con npm run dev: sustituirán a la banda sonora generada (no funciona al abrir Jugar.html con doble clic).'));
   root.appendChild(panel);
   root.appendChild(h('div', { class: 'screen-actions', style: 'justify-content:flex-start' }, h('button', { class: 'btn', onclick: () => { root.remove(); onBack(); } }, 'Volver')));
   parent.appendChild(root);

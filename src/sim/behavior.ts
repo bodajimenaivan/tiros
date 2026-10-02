@@ -86,17 +86,25 @@ function followPath(w: World, e: Entity, s: ComputedStats): boolean {
   e.x = nx;
   e.y = ny;
   e.distMoved += step;
-  // detección de atasco: si no progresa hacia el punto en 2 s
+  // detección de atasco: si no progresa hacia el mismo punto del camino en 2 s
   if (w.time - e.progressCheckT > 2) {
     const dd = Math.hypot(wp.x - e.x, wp.y - e.y);
-    if (e.progressCheckT > 0 && dd > e.progressCheckD - 0.4 && !e.isAir) {
+    const sameWp = e.progressPath === path && e.progressIdx === e.pathIdx;
+    if (sameWp && dd > e.progressCheckD - 0.4 && !e.isAir) {
       e.pathIdx++;
       if (e.pathIdx >= path.length) {
         e.path = null;
+        // atascado lejos del final: recalcular (moveTo pide otro camino) en vez de darlo por llegado
+        if (dd > 2.5) {
+          e.stuckTime += 2;
+          return false;
+        }
         return true;
       }
     }
     e.progressCheckT = w.time;
+    e.progressPath = path;
+    e.progressIdx = e.pathIdx;
     e.progressCheckD = Math.hypot(path[e.pathIdx].x - e.x, path[e.pathIdx].y - e.y);
   }
   return false;
@@ -128,6 +136,17 @@ function moveTo(w: World, e: Entity, x: number, y: number, s: ComputedStats, goa
   }
   const done = followPath(w, e, s);
   if (done) {
+    // camino parcial (búsqueda cortada en mapas grandes): continuar desde aquí en vez de pararse a medio camino
+    if (e.pathPartial && e.partialTries < 8) {
+      const far = goal ? !w.adjacent(e, goal) : Math.hypot(x - e.x, y - e.y) > 1;
+      e.pathPartial = false;
+      if (far) {
+        e.partialTries++;
+        e.lastRepath = w.time;
+        w.requestPath(e, x, y, goal);
+        return 'moving';
+      }
+    }
     e.stuckTime = 0;
     return 'arrived';
   }

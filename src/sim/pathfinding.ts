@@ -29,6 +29,8 @@ export class Pathfinder {
   private heapF: Float32Array;
   private heapSize = 0;
   nodesExpanded = 0;
+  /** La última búsqueda se cortó por límite de nodos y devolvió un camino parcial */
+  lastPartial = false;
 
   constructor(map: GameMap) {
     this.map = map;
@@ -114,6 +116,7 @@ export class Pathfinder {
       }
     }
 
+    this.lastPartial = false;
     if (stx === gtx && sty === gty && !opts.goalRect) return [{ x: gx, y: gy }];
     if (opts.goalRect && this.inGoal(stx, sty, gtx, gty, opts)) return [];
 
@@ -177,11 +180,13 @@ export class Pathfinder {
           this.stamp[ni] = gen;
           this.g[ni] = ng;
           this.parent[ni] = cur;
-          this.push(ni, ng + hx(nx, ny) * 1.001);
+          // heurística ligeramente inflada: caminos casi óptimos expandiendo muchos menos nodos
+          this.push(ni, ng + hx(nx, ny) * 1.2);
         }
       }
     }
     this.nodesExpanded += expanded;
+    this.lastPartial = found < 0;
     const end = found >= 0 ? found : best;
     if (end === start) {
       return found >= 0 ? [] : null;

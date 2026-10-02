@@ -95,6 +95,39 @@ input[type=checkbox] { accent-color: var(--gold); width: 16px; height: 16px; }
 .color-swatch { width: 22px; height: 22px; border: 1px solid #000; cursor: pointer; display: inline-block; vertical-align: middle; }
 
 .civ-info { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+/* Escaramuza: rejilla que se adapta a la ventana; cada panel desplaza su contenido si no cabe */
+.skirmish-body { display: grid; grid-template-columns: minmax(230px, 30%) minmax(0, 1fr); gap: 18px; flex: 1; min-height: 0; }
+.col-panel { display: flex; flex-direction: column; min-height: 0; }
+.skirmish-right { display: flex; flex-direction: column; gap: 14px; min-height: 0; min-width: 0; }
+.players-panel { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.players-scroll { overflow: auto; min-height: 0; }
+.players-table select, .players-table input[type=text] { width: 100%; min-width: 0; }
+.players-table td:first-child { width: 18px; }
+.players-table td:nth-child(2) { width: 18%; }
+.skirmish-lower { display: flex; gap: 14px; flex: 1 1 0; min-height: 150px; }
+.opts-panel { flex: 1; min-width: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0 22px; align-content: start; }
+.opts-panel .form-row label { width: auto; flex: 0 0 42%; }
+.opts-panel select { flex: 1; min-width: 0; max-width: 100%; }
+.skirmish-lower .civ-info { flex: 0 0 clamp(220px, 26%, 340px); overflow: auto; }
+.planet-card canvas { width: clamp(52px, 8.5vh, 96px); height: clamp(52px, 8.5vh, 96px); }
+
+@media (max-height: 820px) {
+  .screen { padding: 16px 24px; }
+  .screen h1 { font-size: 21px; }
+  .screen .subtitle { margin-bottom: 10px; }
+  .screen-actions { margin-top: 10px; }
+  .panel { padding: 11px 13px; }
+  .panel h2 { margin-bottom: 8px; }
+  .form-row { margin-bottom: 6px; }
+  .players-table td, .players-table th { padding: 3px 5px; }
+  select, input[type=text], input[type=number] { padding: 4px 6px; }
+  .planet-card { padding: 5px; }
+}
+@media (max-width: 1100px) {
+  .skirmish-body { grid-template-columns: minmax(180px, 26%) minmax(0, 1fr); }
+  .skirmish-lower .civ-info { display: none; }
+}
 .civ-info b { color: var(--text); }
 .civ-info ul { margin: 4px 0 8px 16px; padding: 0; }
 
