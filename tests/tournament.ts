@@ -8,7 +8,8 @@ const wins: Record<string, number> = {}, games: Record<string, number> = {};
 const times: number[] = [];
 let n = 0;
 const seeds = Number(process.argv[2] ?? 1);
-for (let s = 0; s < seeds; s++)
+const firstSeed = Number(process.argv[3] ?? 0);
+for (let s = firstSeed; s < firstSeed + seeds; s++)
 for (let i = 0; i < civs.length; i++) for (let j = i + 1; j < civs.length; j++) {
   const a = s % 2 ? civs[j] : civs[i], b = s % 2 ? civs[i] : civs[j];
   const planet = planets[(n++) % planets.length];

@@ -26,7 +26,7 @@ def({
     { text: 'Mechs de asalto +20% PV; mechs de ataque y de asalto un 10% más baratos.', mods: [{ target: { cls: ['assaultMech'] }, stat: 'hp', mul: 1.2 }, { target: { cls: ['strikeMech', 'assaultMech'] }, stat: 'cost', mul: 0.9 }] },
     { text: 'Torretas +1 de alcance y se construyen un 30% más rápido.', mods: [{ target: { buildings: ['turret', 'aa_turret'] }, stat: 'range', add: 1 }, { target: { buildings: ['turret', 'aa_turret'] }, stat: 'buildTime', mul: 0.7 }] },
     { text: 'Soldados +15% PV.', mods: [{ target: { cls: ['trooper'] }, stat: 'hp', mul: 1.15 }] },
-    { text: 'Logística imperial: los trabajadores llevan +3 de carga y los núcleos de energía tienen +2 de radio.', mods: [{ target: { cls: ['worker'] }, stat: 'carry', add: 3 }, { target: { buildings: ['power_core'] }, stat: 'powerRadius', add: 2 }] },
+    { text: 'Logística imperial: trabajadores +3 de carga, granjas +10% de recolección y núcleos de energía +2 de radio.', mods: [{ target: { cls: ['worker'] }, stat: 'carry', add: 3 }, { target: { player: true }, stat: 'gatherFarm', mul: 1.1 }, { target: { buildings: ['power_core'] }, stat: 'powerRadius', add: 2 }] },
   ],
   teamBonus: { text: 'Equipo: Fortalezas +2 de alcance.', mods: [{ target: { buildings: ['fortress'] }, stat: 'range', add: 2 }] },
   uniqueUnit: 'dark_trooper', eliteUnique: 'elite_dark_trooper', uniqueTechs: ['imp_walkers', 'imp_death_squadron'],
@@ -74,7 +74,7 @@ def({
   desc: 'El Gran Ejército de la República: legiones de clones dirigidos por generales Jedi.',
   bonuses: [
     { text: 'Soldados cuestan un 20% menos de alimento.', mods: [{ target: { cls: ['trooper'] }, stat: 'costFood', mul: 0.8 }] },
-    { text: 'Caballeros y Maestros Jedi un 15% más baratos.', mods: [{ target: { cls: ['jediKnight', 'jediMaster'] }, stat: 'cost', mul: 0.85 }] },
+    { text: 'Caballeros y Maestros Jedi un 20% más baratos.', mods: [{ target: { cls: ['jediKnight', 'jediMaster'] }, stat: 'cost', mul: 0.8 }] },
     { text: 'Templos y fortalezas se construyen un 25% más rápido.', mods: [{ target: { buildings: ['temple', 'fortress'] }, stat: 'buildTime', mul: 0.75 }] },
     { text: 'Infantería +1 de armadura a distancia.', mods: [{ target: { cls: ['trooper', 'grenadier', 'aaTrooper'] }, stat: 'armorRanged', add: 1 }] },
   ],
@@ -148,7 +148,7 @@ def({
   id: 'naboo', name: 'Naboo Real', short: 'Naboo', side: 'light', style: 'naboo', emblem: 'naboo', homeworld: 'naboo',
   desc: 'Un reino elegante de artistas e ingenieros. Cazas N-1 de élite y una economía rica en cristales.',
   bonuses: [
-    { text: 'Recolección de Nova +15%.', mods: [{ target: { player: true }, stat: 'gatherNova', mul: 1.15 }] },
+    { text: 'Recolección de Nova +10%.', mods: [{ target: { player: true }, stat: 'gatherNova', mul: 1.1 }] },
     { text: 'Cazas +15% PV.', mods: [{ target: { cls: ['fighter'] }, stat: 'hp', mul: 1.15 }] },
     { text: 'Edificios +10% PV.', mods: [{ target: { allBuildings: true }, stat: 'hp', mul: 1.1 }] },
     { text: 'Tecnologías un 10% más baratas.', mods: [{ target: { player: true }, stat: 'researchCost', mul: 0.9 }] },
@@ -178,7 +178,7 @@ def({
     { text: 'Infantería +1 de armadura cuerpo a cuerpo.', mods: [{ target: { tags: ['infantry'] }, stat: 'armorMelee', add: 1 }] },
     { text: 'Antiaéreos +25% PV y +2 de alcance.', mods: [{ target: { cls: ['aaTrooper', 'aaMobile'] }, stat: 'hp', mul: 1.25 }, { target: { cls: ['aaTrooper', 'aaMobile'] }, stat: 'range', add: 2 }, { target: { buildings: ['aa_turret'] }, stat: 'range', add: 2 }] },
   ],
-  teamBonus: { text: 'Equipo: Granjas +15% de alimento.', mods: [{ target: { player: true }, stat: 'gatherFarm', mul: 1.15 }] },
+  teamBonus: { text: 'Equipo: Granjas +10% de alimento.', mods: [{ target: { player: true }, stat: 'gatherFarm', mul: 1.1 }] },
   uniqueUnit: 'fambaa', eliteUnique: 'elite_fambaa', uniqueTechs: ['gun_shields', 'gun_boomas'],
   heroes: ['boss_nass', 'jarjar', 'tarpals'], disabled: ['airbase', 'fighter', 'adv_fighter', 'bomber', 'heavy_bomber', 'up_adv_fighter', 'up_heavy_bomber', 'afterburners', 'deflector_shields'],
   names: {

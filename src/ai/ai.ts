@@ -40,7 +40,7 @@ type GatherKind = 'food' | 'carbon' | 'nova' | 'ore';
 const CIV_STYLE: Record<string, Partial<Record<UnitClass, number>>> = {
   empire: { trooper: 4, strikeMech: 3, assaultMech: 2.5, mechDestroyer: 1.5, grenadier: 1.5, unique: 3, artillery: 1, fighter: 1 },
   rebels: { trooper: 3, mounted: 2, fighter: 3, bomber: 1.5, unique: 3, strikeMech: 1.5, mechDestroyer: 1.5, jediKnight: 1 },
-  republic: { trooper: 4, unique: 3, jediKnight: 2.5, strikeMech: 2, assaultMech: 2, grenadier: 1.5, artillery: 1 },
+  republic: { trooper: 4, unique: 3, jediKnight: 1.8, strikeMech: 2.5, assaultMech: 2, grenadier: 1.5, artillery: 1 },
   cis: { trooper: 4, strikeMech: 3, assaultMech: 2, unique: 2, grenadier: 1.5, mechDestroyer: 1.5, fighter: 1.5 },
   tradefed: { trooper: 3, unique: 4, assaultMech: 3, strikeMech: 2, mechDestroyer: 1.5, artillery: 1 },
   naboo: { trooper: 3, mounted: 2.5, fighter: 3, unique: 3, strikeMech: 1.5, mechDestroyer: 1, grenadier: 1 },
