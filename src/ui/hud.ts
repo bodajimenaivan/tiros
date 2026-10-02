@@ -363,9 +363,10 @@ export class Hud {
         return out;
       }
       const same = builds.filter((x) => x.defId === b.defId && x.built);
-      let i = 0;
+      // el puerto espacial reserva las dos primeras filas para el mercado
+      let i = b.defId === 'spaceport' ? 10 : 0;
       for (const uid of w.trainOptions(b)) {
-        if (i >= 10) break;
+        if (i >= (b.defId === 'spaceport' ? 13 : 10)) break;
         const ud = UNITS[uid];
         const c = w.canTrain(v, uid);
         const cost = p.stats_of(uid).cost;

@@ -31,6 +31,12 @@ def({
   attack: { damage: 4, type: 'ranged', range: 1.6, reload: 2, bonus: { worker: 2 }, projectile: 'bolt' }, model: 'scout',
 });
 
+def({
+  id: 'trader', name: 'Carguero Comercial', desc: 'Nave de carga que comercia entre dos puertos espaciales (tuyos o de un aliado) y obtiene Nova en cada viaje. Cuanto más lejos estén los puertos, más ganancia. Clic derecho sobre otro puerto espacial para iniciar la ruta.', cls: 'trader',
+  tags: ['mech'], era: 2, building: 'spaceport', cost: { food: 60, carbon: 100 }, time: 35, pop: 1,
+  hp: 90, speed: 1.05, los: 5, radius: 0.45, armor: { melee: 0, ranged: 1 }, model: 'trader',
+});
+
 // ───────────────────────── CENTRO DE TROPAS ─────────────────────────
 def({
   id: 'trooper', name: 'Soldado', desc: 'Infantería con bláster. Barata y versátil. Fuerte contra armas pesadas.', cls: 'trooper',

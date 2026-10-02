@@ -57,9 +57,9 @@ def({
   tags: ['building'], model: 'research_center', hotkey: 'R',
 });
 def({
-  id: 'spaceport', name: 'Puerto Espacial', desc: 'Comercia recursos en el mercado galáctico y envía tributos a aliados.',
+  id: 'spaceport', name: 'Puerto Espacial', desc: 'Comercia recursos en el mercado galáctico, envía tributos a aliados y construye cargueros para rutas comerciales.',
   era: 2, cost: { carbon: 175 }, time: 60, hp: 1400, size: 4, los: 7, armor: { melee: 0, ranged: 7 },
-  tags: ['building'], model: 'spaceport', hotkey: 'S',
+  trains: ['trader'], tags: ['building'], model: 'spaceport', hotkey: 'S',
 });
 def({
   id: 'turret', name: 'Torreta Bláster', desc: 'Defensa fija contra unidades terrestres.',

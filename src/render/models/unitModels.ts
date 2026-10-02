@@ -108,6 +108,24 @@ export function buildUnitModel(defId: string, style: CivStyle, saber: number): M
     case 'aaTrooper':
       humanoid(b, infantry(style, 'aa', v));
       break;
+    case 'trader': {
+      // carguero repulsor con contenedores (mira hacia +X)
+      const hull = style === 'gungan' ? 0x6a8a7a : style === 'wookiee' ? WOOD : veh;
+      b.part('body', 'bob');
+      b.box(1.1, 0.18, 0.56, 0, 0.32, 0, hull);
+      b.box(0.28, 0.14, 0.42, 0.66, 0.3, 0, hull, { rz: 0.35 });
+      b.box(1.12, 0.05, 0.58, 0, 0.37, 0, C.team, { team: 1 });
+      b.box(0.34, 0.26, 0.44, -0.27, 0.55, 0, 0xb08a4a);
+      b.box(0.3, 0.24, 0.42, 0.08, 0.54, 0, 0x8a9aa8);
+      b.box(0.22, 0.18, 0.32, 0.42, 0.5, 0, hull);
+      b.box(0.04, 0.09, 0.26, 0.53, 0.52, 0, C.glass);
+      b.box(0.9, 0.02, 0.42, 0, 0.22, 0, C.glowBlue, { em: 0.8 });
+      b.sym((sd) => {
+        b.cyl(0.08, 0.1, 0.25, -0.62, 0.32, sd * 0.18, C.dgray, { rz: Math.PI / 2 });
+        b.cyl(0.065, 0.065, 0.03, -0.75, 0.32, sd * 0.18, C.glowBlue, { em: 2, rz: Math.PI / 2 });
+      });
+      break;
+    }
     case 'scout':
     case 'mounted': {
       const rider = riderOf(style);

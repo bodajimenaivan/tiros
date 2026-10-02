@@ -147,7 +147,7 @@ export class AIController {
     const w = this.w;
     const units = w.unitsOf(this.pid);
     const workers = units.filter((u) => u.ud!.cls === 'worker');
-    const military = units.filter((u) => u.ud!.cls !== 'worker' && u.ud!.cls !== 'scout' && u.ud!.cls !== 'jediMaster');
+    const military = units.filter((u) => u.ud!.cls !== 'worker' && u.ud!.cls !== 'scout' && u.ud!.cls !== 'jediMaster' && u.ud!.cls !== 'trader');
     const buildings = w.buildingsOf(this.pid);
     const ccs = buildings.filter((b) => b.defId === 'command_center' && b.built);
     if (ccs.length) {
@@ -171,6 +171,63 @@ export class AIController {
     if (this.p.difficulty !== 'easy' && this.thinkCount % 4 === 0) this.manageMarket(buildings);
     if (this.thinkCount % 6 === 0) this.manageRepairs(buildings, workers);
     if (this.thinkCount % 5 === 2) this.manageFoundations(buildings);
+    if (this.thinkCount % 6 === 3) this.manageTrade(buildings);
+  }
+
+  /** Comercio: rutas de cargueros entre puertos espaciales (aliados primero) */
+  manageTrade(buildings: Entity[]) {
+    const w = this.w;
+    const p = this.p;
+    if (p.difficulty === 'easy' || p.era < 2) return;
+    const ports = buildings.filter((b) => b.built && b.defId === 'spaceport');
+    if (!ports.length) return;
+    let best: { home: Entity; dest: Entity; gain: number } | null = null;
+    for (const home of ports) {
+      for (const dest of w.buildings) {
+        if (!dest.alive || !dest.built || dest.defId !== 'spaceport' || dest === home) continue;
+        if (dest.owner !== this.pid && !p.isAlly(dest.owner)) continue;
+        if (this.dangerous(dest.x, dest.y) || this.dangerous(home.x, home.y)) continue;
+        const g = w.tradeGain(home, dest, this.pid);
+        if (g > (best?.gain ?? 0)) best = { home, dest, gain: g };
+      }
+    }
+    if (!best || best.gain < 10) {
+      // sin ruta rentable: un segundo puerto espacial junto a un centro de mando lejano
+      if (p.era >= 3 && ports.length < 2 && p.res.carbon > 350 && this.time - (this.lastBuildAt.spaceport2 ?? -999) > 120) {
+        let far: Entity | null = null;
+        let fd = 0;
+        for (const c of buildings) {
+          if (!c.built || c.defId !== 'command_center') continue;
+          const d = Math.hypot(c.x - ports[0].x, c.y - ports[0].y);
+          if (d > fd) {
+            fd = d;
+            far = c;
+          }
+        }
+        if (far && fd >= 24) {
+          this.lastBuildAt.spaceport2 = this.time;
+          const spot = this.findSpot('spaceport', far.x, far.y, 4, 11, false);
+          if (spot) {
+            const bs = this.pickBuilders(spot.x + 2, spot.y + 2, 2);
+            if (bs.length) w.commandBuild(this.pid, bs.map((u) => u.id), 'spaceport', spot.x, spot.y, false);
+          }
+        }
+      }
+      return;
+    }
+    const traders = w.units.filter((u) => u.alive && u.owner === this.pid && u.ud!.cls === 'trader');
+    // más cargueros cuando la Nova del mapa escasea
+    const novaLeft = this.bestNode(this.baseX, this.baseY, 'nova', 60) !== null;
+    const want = Math.min(p.era >= 3 ? (novaLeft ? 7 : 14) : 4, Math.floor(best.gain / 3));
+    if (traders.length < want && p.pop < p.popCap - 2) {
+      const port = best.home.prodQueue.length < 2 ? best.home : ports.find((b) => b.prodQueue.length < 2);
+      const cost = p.stats_of('trader').cost;
+      if (port && p.res.food >= (cost.food ?? 0) + 150 && p.res.carbon >= (cost.carbon ?? 0) + 120 && w.canTrain(this.pid, 'trader').ok) w.queueTrain(port, 'trader', 1);
+    }
+    for (const u of traders) {
+      if (u.order) continue;
+      w.issue(u, { type: 'trade', targetId: best.dest.id, resumeId: best.home.id }, false);
+    }
   }
 
   /** Cimientos abandonados: reasignar constructores o eliminarlos si no se pueden terminar */
@@ -214,7 +271,7 @@ export class AIController {
     for (const q of w.players) {
       if (!q.id || !p.isEnemy(q.id) || q.defeated) continue;
       let n = 0;
-      for (const u of w.units) if (u.alive && u.owner === q.id && u.ud!.cls !== 'worker') n++;
+      for (const u of w.units) if (u.alive && u.owner === q.id && u.ud!.cls !== 'worker' && u.ud!.cls !== 'trader') n++;
       enemyArmy = Math.max(enemyArmy, n);
     }
     // aliados vivos con fuerza: seguir luchando
@@ -248,7 +305,7 @@ export class AIController {
       const i = Math.floor(u.y) * N + Math.floor(u.x);
       if (!vis[i] && this.p.difficulty !== 'extreme') continue;
       const c = u.ud!.cls;
-      if (c === 'worker') continue;
+      if (c === 'worker' || c === 'trader') continue;
       seen[c] = (seen[c] ?? 0) + 1;
     }
     // memoria con decaimiento

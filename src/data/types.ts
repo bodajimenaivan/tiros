@@ -14,7 +14,7 @@ export type Tag =
 export type UnitClass =
   | 'worker' | 'scout' | 'trooper' | 'grenadier' | 'aaTrooper' | 'mounted' | 'strikeMech' | 'mechDestroyer'
   | 'assaultMech' | 'pummel' | 'artillery' | 'aaMobile' | 'fighter' | 'bomber' | 'jediKnight' | 'jediMaster'
-  | 'unique' | 'hero' | 'animal';
+  | 'unique' | 'hero' | 'animal' | 'trader';
 
 export type ProjectileKind = 'bolt' | 'heavyBolt' | 'grenade' | 'shell' | 'missile' | 'bomb' | 'ion' | 'energyBall' | 'arrow' | 'none';
 

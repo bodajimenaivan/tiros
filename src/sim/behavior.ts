@@ -274,6 +274,26 @@ export function updateUnit(w: World, e: Entity) {
     case 'returnRes':
       returnRes(w, e, o, s);
       break;
+    case 'trade': {
+      // ruta comercial entre dos puertos espaciales (propios o aliados)
+      const dest = w.get(o.targetId!), home = w.get(o.resumeId!);
+      const okPort = (b: Entity | undefined) => !!b && b.alive && b.built && b.defId === 'spaceport' && (b.owner === e.owner || p.isAlly(b.owner));
+      if (!okPort(dest) || !okPort(home)) return w.nextOrder(e);
+      if (w.distTo(e, dest!) > 0.6 && !w.adjacent(e, dest!)) {
+        if (moveTo(w, e, dest!.x, dest!.y, s, dest!) === 'failed') w.nextOrder(e);
+        break;
+      }
+      const g = w.tradeGain(home!, dest!, e.owner);
+      if (g > 0) {
+        p.res.nova += g;
+        p.stats.gathered.nova += g;
+        w.emit({ t: 'drop', owner: e.owner, res: 'nova', amount: g });
+      }
+      o.targetId = home!.id;
+      o.resumeId = dest!.id;
+      e.path = null;
+      break;
+    }
     case 'build':
     case 'repair':
       build(w, e, o, s);

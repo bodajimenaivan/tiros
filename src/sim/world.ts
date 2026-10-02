@@ -23,6 +23,7 @@ export const HOLOCRON_RATE = 0.45; // nova/s por holocrón
 
 const BASE_ERA_CACHE = new Map<string, number>();
 const MARKET_BASE = { food: 100, carbon: 100, ore: 130 };
+const TRADE_MIN_DIST = 18;
 
 export class World {
   setup: GameSetup;
@@ -1287,6 +1288,15 @@ export class World {
         continue;
       }
       if (tgt.owner === pid || this.players[pid].isAlly(tgt.owner)) {
+        // cargueros: clic derecho en un puerto espacial -> ruta comercial
+        if (ud.cls === 'trader' && tgt.kind === 'building' && tgt.defId === 'spaceport' && tgt.built) {
+          const home = this.tradeHome(u, tgt);
+          if (home) {
+            this.issue(u, { type: 'trade', targetId: tgt.id, resumeId: home.id }, queue);
+            continue;
+          }
+          if (this.players[pid].human) this.msg(pid, 'Para comerciar necesitas otro puerto espacial (tuyo o aliado) a suficiente distancia.', '#ffb04a');
+        }
         if (tgt.kind === 'building') {
           if (ud.canBuild && (!tgt.built || tgt.hp < tgt.maxHp) && tgt.owner === pid) {
             this.issue(u, { type: tgt.built ? 'repair' : 'build', targetId: tgt.id }, queue);
@@ -1496,6 +1506,32 @@ export class World {
   }
 
   // ─────────────────────────── Mercado y tributos ───────────────────────────
+
+  /** Puerto espacial propio más cercano al carguero que pueda hacer ruta con 'dest' */
+  tradeHome(u: Entity, dest: Entity): Entity | null {
+    let best: Entity | null = null;
+    let bd = Infinity;
+    for (const b of this.buildings) {
+      if (!b.alive || !b.built || b.owner !== u.owner || b.defId !== 'spaceport' || b === dest) continue;
+      if (Math.hypot(b.x - dest.x, b.y - dest.y) < TRADE_MIN_DIST) continue;
+      const d = Math.hypot(b.x - u.x, b.y - u.y);
+      if (d < bd) {
+        bd = d;
+        best = b;
+      }
+    }
+    return best;
+  }
+
+  /** Nova obtenida en cada viaje: crece con el cuadrado de la distancia entre puertos */
+  tradeGain(a: Entity, b: Entity, pid: number): number {
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (d < TRADE_MIN_DIST) return 0;
+    let g = 0.0075 * d * d + 0.35 * d;
+    if (a.owner === b.owner) g *= 0.7; // comercio interior: menos rentable que con aliados
+    g *= 1 + Math.max(0, 0.3 - this.marketFee(pid)); // gremios y Federación de Comercio
+    return Math.round(g);
+  }
 
   marketFee(pid: number): number {
     return 0.3 * this.players[pid].eco('tradeFee');

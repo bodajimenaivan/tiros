@@ -6,7 +6,7 @@ export type ResKind = 'tree' | 'bush' | 'nova' | 'ore' | 'carcass';
 
 export type OrderType =
   | 'move' | 'attackMove' | 'attack' | 'gather' | 'build' | 'repair' | 'returnRes' | 'convert' | 'heal'
-  | 'ability' | 'pickup' | 'deposit' | 'follow' | 'patrol' | 'flee' | 'garrison';
+  | 'ability' | 'pickup' | 'deposit' | 'follow' | 'patrol' | 'flee' | 'garrison' | 'trade';
 
 export interface Order {
   type: OrderType;
