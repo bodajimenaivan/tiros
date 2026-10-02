@@ -25,7 +25,7 @@ def({
   bonuses: [
     { text: 'Mechs de asalto +20% PV.', mods: [{ target: { cls: ['assaultMech'] }, stat: 'hp', mul: 1.2 }] },
     { text: 'Torretas +1 de alcance y se construyen un 30% más rápido.', mods: [{ target: { buildings: ['turret', 'aa_turret'] }, stat: 'range', add: 1 }, { target: { buildings: ['turret', 'aa_turret'] }, stat: 'buildTime', mul: 0.7 }] },
-    { text: 'Soldados +10% PV.', mods: [{ target: { cls: ['trooper'] }, stat: 'hp', mul: 1.1 }] },
+    { text: 'Soldados +15% PV.', mods: [{ target: { cls: ['trooper'] }, stat: 'hp', mul: 1.15 }] },
     { text: 'Logística imperial: los trabajadores llevan +3 de carga y los núcleos de energía tienen +2 de radio.', mods: [{ target: { cls: ['worker'] }, stat: 'carry', add: 3 }, { target: { buildings: ['power_core'] }, stat: 'powerRadius', add: 2 }] },
   ],
   teamBonus: { text: 'Equipo: Fortalezas +2 de alcance.', mods: [{ target: { buildings: ['fortress'] }, stat: 'range', add: 2 }] },
@@ -101,7 +101,7 @@ def({
     { text: 'Soldados y trabajadores droide cuestan un 20% menos de alimento.', mods: [{ target: { cls: ['trooper', 'worker'] }, stat: 'costFood', mul: 0.8 }] },
     { text: 'Mechs +10% de velocidad.', mods: [{ target: { tags: ['mech'] }, stat: 'speed', mul: 1.1 }] },
     { text: 'Fábricas de mechs trabajan un 15% más rápido.', mods: [{ target: { tags: ['mech'] }, stat: 'trainTime', mul: 0.85 }] },
-    { text: 'Los droides no se cansan: trabajadores +10% de recolección de mineral.', mods: [{ target: { player: true }, stat: 'gatherOre', mul: 1.1 }] },
+    { text: 'Los droides no se cansan: trabajadores +10% de recolección de carbono, Nova y mineral.', mods: [{ target: { player: true }, stat: 'gatherCarbon', mul: 1.1 }, { target: { player: true }, stat: 'gatherNova', mul: 1.1 }, { target: { player: true }, stat: 'gatherOre', mul: 1.1 }] },
   ],
   teamBonus: { text: 'Equipo: Núcleos de energía +3 de radio.', mods: [{ target: { buildings: ['power_core'] }, stat: 'powerRadius', add: 3 }] },
   uniqueUnit: 'magnaguard', eliteUnique: 'elite_magnaguard', uniqueTechs: ['cis_foundries', 'cis_tactical'],
@@ -123,7 +123,7 @@ def({
   id: 'tradefed', name: 'Federación de Comercio', short: 'Federación', side: 'dark', style: 'tradefed', emblem: 'tradefed', homeworld: 'naboo',
   desc: 'Un imperio mercantil respaldado por ejércitos droide. Economía de hierro y droidekas imparables.',
   bonuses: [
-    { text: 'Trabajadores un 20% más baratos.', mods: [{ target: { cls: ['worker'] }, stat: 'cost', mul: 0.8 }] },
+    { text: 'Trabajadores un 15% más baratos.', mods: [{ target: { cls: ['worker'] }, stat: 'cost', mul: 0.85 }] },
     { text: 'Mechs de asalto +1/+1 de armadura.', mods: [{ target: { cls: ['assaultMech'] }, stat: 'armorMelee', add: 1 }, { target: { cls: ['assaultMech'] }, stat: 'armorRanged', add: 1 }] },
     { text: 'Recolección de mineral y Nova +10%.', mods: [{ target: { player: true }, stat: 'gatherOre', mul: 1.1 }, { target: { player: true }, stat: 'gatherNova', mul: 1.1 }] },
     { text: 'Comisión de comercio reducida a la mitad.', mods: [{ target: { player: true }, stat: 'tradeFee', mul: 0.5 }] },
