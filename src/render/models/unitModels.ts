@@ -59,7 +59,7 @@ function infantry(style: CivStyle, role: 'trooper' | 'grenadier' | 'aa' | 'worke
 function riderOf(style: CivStyle): HumOpts {
   switch (style) {
     case 'imperial': return { body: 0x3a3a3a, legs: WHITE, head: 'scout', weapon: 'pistol', accent: 'shoulder' };
-    case 'rebel': return { body: REB_VEST, legs: REB_PANTS, head: 'rebelHelmet', weapon: 'pistol', accent: 'shoulder' };
+    case 'rebel': return { body: 0x5e6444, legs: 0x4a4e36, vest: 0x6e6a48, head: 'rebelHelmet', headColor: 0x5a5a40, weapon: 'pistol', accent: 'shoulder' };
     case 'republic': return { body: WHITE, head: 'clone2', weapon: 'pistol', accent: 'stripe' };
     case 'cis': return { body: B1, head: 'b1', headColor: B1, weapon: 'none', thin: true, accent: 'chest' };
     case 'tradefed': return { body: B1TF, head: 'b1', headColor: B1TF, weapon: 'none', thin: true, accent: 'chest' };

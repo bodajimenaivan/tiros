@@ -445,39 +445,50 @@ export function beast(b: MB, o: BeastOpts) {
 // ─────────────────────────── Naves ───────────────────────────
 export function tieFighter(b: MB, kind: 'fighter' | 'interceptor' | 'bomber' | 'advanced') {
   b.part('body', 'static');
-  const panel = 0x2a2c34;
+  const panel = 0x22242a;
+  const frame = 0x7a7e86;
+  b.surf(SURF.panel);
   if (kind === 'bomber') {
-    b.sphere(0.28, 0.1, 0, 0.18, IMP, { seg: 10 });
-    b.capsule(0.22, 0.6, -0.05, 0, -0.18, IMP, { rz: Math.PI / 2 });
-    b.sphere(0.13, 0.36, 0.02, 0.18, C.black, { seg: 8 });
+    b.sphere(0.28, 0.1, 0, 0.18, IMP, { seg: 14 });
+    b.capsule(0.22, 0.6, -0.05, 0, -0.18, IMP, { rz: Math.PI / 2, seg: 12 });
+    b.ell(0.03, 0.11, 0.11, 0.37, 0.02, 0.18, 0x10161c, { mat: SURF.glass });
   } else {
-    b.sphere(0.3, 0, 0, 0, IMP, { seg: 12 });
-    b.sphere(0.16, 0.24, 0.02, 0, C.black, { seg: 8 });
+    // cabina esférica con ventana octogonal enmarcada
+    b.sphere(0.3, 0, 0, 0, IMP, { seg: 16 });
+    b.cyl(0.17, 0.17, 0.04, 0.27, 0.02, 0, 0x10161c, { rz: Math.PI / 2, seg: 8, mat: SURF.glass });
+    b.torus(0.17, 0.02, 0.28, 0.02, 0, frame, { ry: Math.PI / 2, seg: 8 });
+    for (let i = 0; i < 4; i++) b.rbox(0.02, 0.34, 0.016, 0.004, 0.29, 0.02, 0, frame, { rx: (i * Math.PI) / 4 });
+    b.cyl(0.08, 0.08, 0.06, -0.26, 0.0, 0, IMPD, { rz: Math.PI / 2, seg: 12 });
   }
-  b.sym((s) => b.cyl(0.07, 0.07, 0.4, 0, 0, s * 0.35, IMPD, { rx: Math.PI / 2 }));
-  b.box(0.12, 0.04, 0.4, -0.15, 0.25, 0, C.team, { team: 1 });
+  // pilones
+  b.sym((s) => {
+    b.cyl(0.065, 0.075, 0.42, 0, 0, s * 0.36, IMPD, { rx: Math.PI / 2, seg: 12 });
+    b.cyl(0.1, 0.1, 0.05, 0, 0, s * 0.18, IMP, { rx: Math.PI / 2, seg: 12 });
+  });
+  b.rbox(0.12, 0.04, 0.38, 0.01, -0.15, 0.27, 0, C.team, { team: 1 });
   for (const s of [1, -1]) {
-    const z = s * 0.58;
+    const z = s * 0.6;
     if (kind === 'interceptor' || kind === 'advanced') {
-      b.poly([[0.55, 0], [0.1, 0.62], [-0.35, 0.7], [-0.45, 0], [-0.35, -0.7], [0.1, -0.62]].map(([x, y]) => [x, y] as [number, number]), 0.04, 0, panel, { rx: Math.PI / 2 });
-      // la fuente usa el plano XZ: rotamos para que quede vertical
-    }
-    if (kind === 'fighter' || kind === 'bomber') {
-      // ala hexagonal vertical
+      // alas en daga
       b.offset(0, 0, z, () => {
-        b.box(0.04, 1.1, 0.9, 0, 0, 0, panel, { rx: Math.PI / 2 * 0 });
-        b.box(0.05, 1.12, 0.06, 0, 0, 0, IMPD);
-        b.box(0.05, 0.06, 0.92, 0, 0, 0, IMPD);
+        b.prism([[-0.02, -0.65], [0.02, -0.65], [0.02, 0.65], [-0.02, 0.65]], 0.95, -0.05, 0, 0, panel, { bevel: 0.005 });
+        b.rbox(0.05, 1.32, 0.05, 0.01, -0.05, 0, 0, frame);
+        b.rbox(0.9, 0.05, 0.05, 0.01, -0.05, 0, 0, frame);
+        for (const yy of [-1, 1]) b.limb([0.15, yy * 0.66, 0], [0.55, yy * 0.66, 0], 0.016, 0.012, C.gun, { seg: 6 });
       });
     } else {
+      // ala hexagonal: panel solar negro, marco y radios
       b.offset(0, 0, z, () => {
-        b.box(0.04, 1.2, 0.6, -0.05, 0, 0, panel, { rx: 0 });
-        b.box(0.05, 0.06, 0.62, -0.05, 0, 0, IMPD);
-        b.box(0.05, 1.22, 0.06, -0.05, 0, 0, IMPD);
+        b.cyl(0.62, 0.62, 0.03, 0, 0, 0, panel, { rx: Math.PI / 2, seg: 6, flat: true, mat: SURF.panel, ms: 1.6 });
+        b.torus(0.6, 0.025, 0, 0, 0, frame, { seg: 6, rz: Math.PI / 6 * 0 });
+        for (let i = 0; i < 3; i++) b.rbox(0.03, 1.22, 0.035, 0.008, 0, 0, 0, frame, { rz: (i * Math.PI) / 3 });
+        b.cyl(0.12, 0.12, 0.05, 0, 0, 0, frame, { rx: Math.PI / 2, seg: 12 });
       });
     }
   }
-  b.sym((s) => b.cyl(0.02, 0.02, 0.15, 0.3, -0.12, s * 0.08, C.glowGreen, { em: 1.5, rz: Math.PI / 2 }));
+  b.surf(null);
+  b.sym((s) => b.limb([0.22, -0.13, s * 0.08], [0.38, -0.13, s * 0.08], 0.018, 0.018, C.gun, { seg: 6 }));
+  b.sym((s) => b.cyl(0.02, 0.02, 0.03, 0.39, -0.13, s * 0.08, C.glowGreen, { em: 1.5, rz: Math.PI / 2, seg: 8 }));
 }
 
 export function xwing(b: MB, kind: 'xwing' | 'awing' | 'ywing' | 'bwing' | 'arc170' | 'vwing' | 'n1' | 'nabooBomber' | 'airspeeder' | 'catamaran' | 'glider' | 'jedi') {
@@ -485,18 +496,31 @@ export function xwing(b: MB, kind: 'xwing' | 'awing' | 'ywing' | 'bwing' | 'arc1
   const W = 0xe8e4dc;
   switch (kind) {
     case 'xwing': {
-      b.box(1.2, 0.18, 0.2, 0.1, 0, 0, W);
-      b.wedge(0.2, 0.12, 0.5, 0.88, -0.09, 0, W, { ry: Math.PI / 2, rz: 0 });
-      b.box(0.3, 0.12, 0.16, 0.1, 0.13, 0, C.glass);
-      b.box(0.5, 0.04, 0.22, 0.25, 0.1, 0, C.team, { team: 1 });
-      b.sphere(0.07, -0.25, 0.12, 0, 0x5a8acc); // R2
-      for (const [y, z] of [[0.12, 1], [0.12, -1], [-0.12, 1], [-0.12, -1]]) {
-        b.box(0.35, 0.03, 0.75, -0.25, y + Math.sign(y) * z * 0, z * 0.45, W, { rx: z * (y > 0 ? -0.25 : 0.25) });
-        b.cyl(0.07, 0.07, 0.4, -0.25, y * 1.4, z * 0.22, 0xa0a0a0, { rz: Math.PI / 2 });
-        b.cyl(0.05, 0.05, 0.05, -0.47, y * 1.4, z * 0.22, C.glowOrange, { em: 2, rz: Math.PI / 2 });
-        b.cyl(0.015, 0.015, 0.7, 0.05, y * 2.5, z * 0.82, C.metal, { rz: Math.PI / 2 });
-        b.box(0.2, 0.025, 0.08, -0.2, y + y * 0.6, z * 0.55, C.team, { team: 1, rx: z * (y > 0 ? -0.25 : 0.25) });
-      }
+      // T-65: morro largo ahusado, cabina, astromecánico y alas en X con motores y cañones
+      b.taper(0.9, 0.17, 0.22, 0.35, 0.4, 0.62, 0.0, 0, W, { mat: SURF.hull });
+      b.rbox(0.72, 0.22, 0.28, 0.04, -0.05, 0.0, 0, W, { mat: SURF.hull });
+      b.rbox(0.22, 0.26, 0.34, 0.04, -0.46, 0.0, 0, 0xd0ccc4, { mat: SURF.panel });
+      b.ell(0.2, 0.08, 0.1, 0.18, 0.12, 0, 0x1a2430, { mat: SURF.glass });
+      b.torus(0.1, 0.012, 0.18, 0.12, 0, 0x6a6e76, { rz: Math.PI / 2, ry: Math.PI / 2, seg: 12 });
+      b.cyl(0.055, 0.06, 0.06, -0.1, 0.13, 0, 0xe8e8e8, { seg: 12 });
+      b.sphere(0.055, -0.1, 0.16, 0, 0x3a6ac8, { seg: 10, mat: SURF.panel }); // R2
+      b.rbox(0.5, 0.012, 0.23, 0.004, 0.35, 0.088, 0, C.team, { team: 1 }); // franja
+      for (const up of [1, -1])
+        for (const side of [1, -1]) {
+          const a = side * up * -0.26;
+          const span = 0.78;
+          const root: [number, number, number] = [-0.25, up * 0.07, side * 0.14];
+          const cy = root[1] + up * Math.sin(0.26) * span * 0.5, cz = root[2] + side * Math.cos(0.26) * span * 0.5;
+          b.rbox(0.42, 0.028, span, 0.01, root[0], cy, cz, W, { rx: a, mat: SURF.hull });
+          b.rbox(0.16, 0.03, 0.3, 0.008, root[0] + 0.08, cy + up * 0.005, cz + side * 0.12, C.team, { team: 1, rx: a });
+          // motor junto al fuselaje
+          b.cyl(0.075, 0.08, 0.5, -0.27, root[1] + up * 0.05, side * 0.2, 0xa8acb2, { rz: Math.PI / 2, seg: 12, mat: SURF.panel });
+          b.cyl(0.06, 0.06, 0.03, -0.53, root[1] + up * 0.05, side * 0.2, C.glowOrange, { em: 2.2, rz: Math.PI / 2, seg: 12 });
+          // cañón láser en la punta del ala
+          const ty = root[1] + up * Math.sin(0.26) * span, tz = root[2] + side * Math.cos(0.26) * span;
+          b.limb([-0.35, ty, tz], [0.75, ty, tz], 0.022, 0.014, 0x8a8e96, { mat: SURF.panel, seg: 8 });
+          b.cyl(0.02, 0.02, 0.08, 0.78, ty, tz, 0x3a3c42, { rz: Math.PI / 2, seg: 8 });
+        }
       break;
     }
     case 'awing': {

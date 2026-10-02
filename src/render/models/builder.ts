@@ -282,6 +282,17 @@ export class MB {
     g.rotateX(-Math.PI / 2);
     return this.add(g, 0, y, 0, color, o);
   }
+  /** Caja ahusada hacia +X: la cara delantera se escala por (fy, fz) (morros de naves) */
+  taper(w: number, h: number, d: number, fy: number, fz: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
+    const g = new THREE.BoxGeometry(w, h, d, 2, 1, 1);
+    const p = g.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < p.count; i++) {
+      const t = (p.getX(i) / w + 0.5); // 0 atrás, 1 delante
+      p.setY(i, p.getY(i) * (1 + (fy - 1) * t));
+      p.setZ(i, p.getZ(i) * (1 + (fz - 1) * t));
+    }
+    return this.add(g, x, y, z, color, o, true);
+  }
   /** Prisma: perfil (z, y) en el plano transversal, extruido a lo largo de X con bisel */
   prism(profile: [number, number][], len: number, x: number, y: number, z: number, color: number, o?: PartOpts & { bevel?: number }) {
     const shape = new THREE.Shape();
