@@ -11,6 +11,9 @@ export class Minimap {
   private fog: HTMLCanvasElement;
   private fogCtx: CanvasRenderingContext2D;
   private fogImg: ImageData;
+  private frameCanvas: HTMLCanvasElement;
+  private fctx: CanvasRenderingContext2D;
+  private lastYaw = NaN;
   private timer = 0;
   private pings: { x: number; y: number; t: number }[] = [];
   private dragging = false;
@@ -23,7 +26,11 @@ export class Minimap {
     this.canvas.width = this.W * 2;
     this.canvas.height = this.H * 2;
     wrap.appendChild(this.canvas);
-    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!;
+    this.ctx = this.canvas.getContext('2d')!;
+    this.frameCanvas = document.createElement('canvas');
+    this.frameCanvas.width = this.W * 2;
+    this.frameCanvas.height = this.H * 2;
+    this.fctx = this.frameCanvas.getContext('2d')!;
     const w = s.world;
     const N = w.N;
     // capa base del terreno
@@ -114,15 +121,19 @@ export class Minimap {
 
   update(dt: number) {
     this.timer -= dt;
-    if (this.timer > 0 && !this.pings.length) {
-      this.drawCamera();
-      return;
-    }
-    if (this.timer <= 0) {
+    const yaw = this.s.renderer.camYaw;
+    if (this.timer <= 0 || Math.abs(yaw - this.lastYaw) > 0.01 || Number.isNaN(this.lastYaw)) {
       this.timer = 0.25;
+      this.lastYaw = yaw;
       this.updateFog();
+      this.drawFrame();
     }
-    this.draw();
+    // cada fotograma: componer el último fotograma + alertas + cámara (sin lecturas de píxeles)
+    const ctx = this.ctx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.frameCanvas, 0, 0);
+    this.drawPings();
+    this.drawCameraOnly();
   }
 
   private updateFog() {
@@ -140,9 +151,8 @@ export class Minimap {
     this.fogCtx.putImageData(this.fogImg, 0, 0);
   }
 
-  private lastDraw = 0;
-  private draw() {
-    const ctx = this.ctx;
+  private drawFrame() {
+    const ctx = this.fctx;
     const w = this.s.world;
     const N = w.N;
     const v = this.s.viewer;
@@ -204,8 +214,12 @@ export class Minimap {
       ctx.fill();
     }
     ctx.restore();
-    // alertas
+  }
+
+  private drawPings() {
+    const ctx = this.ctx;
     const now = performance.now();
+    if (!this.pings.length) return;
     this.pings = this.pings.filter((pg) => now - pg.t < 3000);
     for (const pg of this.pings) {
       const [mx, my] = this.toMini(pg.x, pg.y);
@@ -216,21 +230,6 @@ export class Minimap {
       ctx.arc(mx, my, 6 + k * 26, 0, Math.PI * 2);
       ctx.stroke();
     }
-    this.lastDraw = now;
-    // copia para dibujar la cámara encima sin redibujar todo
-    this.cacheFrame();
-    this.drawCameraOnly();
-  }
-
-  private frame: ImageData | null = null;
-  private cacheFrame() {
-    this.frame = this.ctx.getImageData(0, 0, this.W * 2, this.H * 2);
-  }
-
-  private drawCamera() {
-    if (!this.frame) return;
-    this.ctx.putImageData(this.frame, 0, 0);
-    this.drawCameraOnly();
   }
 
   private drawCameraOnly() {

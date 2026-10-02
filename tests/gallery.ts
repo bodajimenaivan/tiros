@@ -1,0 +1,65 @@
+// Galería de modelos para revisar el aspecto de unidades y edificios: ?civ=empire&kind=units|buildings
+import * as THREE from 'three';
+import { CIVS } from '../src/data/civs';
+import { UNITS } from '../src/data/units';
+import { BUILDINGS } from '../src/data/buildings';
+import { buildUnitModel } from '../src/render/models/unitModels';
+import { buildBuildingModel } from '../src/render/models/buildingModels';
+import { ModelBatch } from '../src/render/instances';
+import { createModelMaterial } from '../src/render/materials';
+import { PLAYER_COLORS } from '../src/data/civs';
+
+const params = new URLSearchParams(location.search);
+const civ = CIVS[params.get('civ') ?? 'empire'];
+const kind = params.get('kind') ?? 'units';
+const app = document.getElementById('app')!;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+app.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8a9aa8);
+const cam = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 500);
+scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x5a5040, 1.1));
+const sun = new THREE.DirectionalLight(0xfff2e0, 2.6);
+sun.position.set(20, 30, 14);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = sun.shadow.camera.bottom = -40;
+sun.shadow.camera.right = sun.shadow.camera.top = 40;
+scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x6a7a4a, roughness: 1 }));
+ground.receiveShadow = true;
+scene.add(ground);
+const mat = createModelMaterial();
+const group = new THREE.Group();
+scene.add(group);
+const team = new THREE.Color(PLAYER_COLORS[0].hex);
+
+let ids: string[];
+if (kind === 'units') {
+  ids = Object.values(UNITS).filter((u) => !u.hidden && u.cls !== 'animal' && (!u.civ || u.civ === civ.id) && (!u.heroOf || civ.heroes.includes(u.id)) && !civ.disabled.includes(u.id)).map((u) => u.id);
+} else ids = Object.keys(BUILDINGS);
+const cols = kind === 'units' ? 8 : 6;
+const gap = kind === 'units' ? 2.2 : 6.5;
+const m = new THREE.Matrix4();
+ids.forEach((id, i) => {
+  const def = kind === 'units' ? buildUnitModel(id, civ.style, civ.saber) : buildBuildingModel(id, civ.style);
+  const b = new ModelBatch(def, group, mat, { shadows: true, capacity: 1 });
+  b.begin();
+  const x = (i % cols) * gap, z = Math.floor(i / cols) * gap;
+  const sc = kind === 'units' ? (UNITS[id].air ? 1.2 : 1.25) : 1;
+  m.compose(new THREE.Vector3(x, UNITS[id]?.air ? 1.2 : 0, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 4 - 0.4), new THREE.Vector3(sc, sc, sc));
+  b.push(m, team, new THREE.Color(civ.saber), 1, 0, 1, { walk: 0, walkAmp: 0, attackT: 9, melee: false, workT: 9, time: 0, seed: i, spin: 0 } as any);
+  b.commit(false);
+});
+const rows = Math.ceil(ids.length / cols);
+const cx = ((cols - 1) * gap) / 2, cz = ((rows - 1) * gap) / 2;
+const span = Math.max(cols * gap, rows * gap);
+cam.position.set(cx, span * 0.75, cz + span * 1.15);
+cam.lookAt(cx, 0, cz);
+renderer.render(scene, cam);
+(window as any).__ready = true;
+(window as any).__ids = ids;
