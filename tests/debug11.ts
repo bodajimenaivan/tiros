@@ -29,3 +29,13 @@ for (const ai of ais as any[]) {
   const pend = w.buildings.filter((b: any) => b.alive && b.owner === ai.pid && (b.defId === 'shelter') && !b.built).length;
   console.log('  pending shelters', pend, 'popMax', p.popMax);
 }
+// prueba directa de manageProduction
+for (const ai of ais as any[]) {
+  const units = w.unitsOf(ai.pid);
+  const workers = units.filter((u: any) => u.ud!.cls === 'worker');
+  const military = units.filter((u: any) => u.ud!.cls !== 'worker' && u.ud!.cls !== 'scout' && u.ud!.cls !== 'jediMaster');
+  const buildings = w.buildingsOf(ai.pid);
+  console.log(w.players[ai.pid].name, 'mil', military.length, 'underAttack', ai.underAttack(), 'weights', JSON.stringify(ai.compositionWeights()));
+  ai.manageProduction(buildings, military, workers);
+  console.log('  queues after', buildings.filter((b: any) => b.bd!.trains?.length && b.defId !== 'command_center').map((b: any) => b.defId + ':' + b.prodQueue.map((q: any) => q.id).join('+')).join(' '));
+}

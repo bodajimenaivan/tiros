@@ -320,7 +320,7 @@ export class AIController {
   desiredRatios(): Record<GatherKind, number> {
     const era = this.p.era;
     const p = this.p;
-    const eco: Record<GatherKind, number> = era === 1 ? { food: 0.6, carbon: 0.4, nova: 0, ore: 0 } : era === 2 ? { food: 0.46, carbon: 0.38, nova: 0.12, ore: 0.04 } : { food: 0.42, carbon: 0.36, nova: 0.17, ore: 0.05 };
+    const eco: Record<GatherKind, number> = era === 1 ? { food: 0.6, carbon: 0.4, nova: 0, ore: 0 } : era === 2 ? { food: 0.5, carbon: 0.34, nova: 0.12, ore: 0.04 } : { food: 0.48, carbon: 0.31, nova: 0.16, ore: 0.05 };
     // demanda militar según la composición deseada
     const mil: Record<GatherKind, number> = { food: 0, carbon: 0, nova: 0, ore: 0 };
     const weights = this.compositionWeights();
@@ -349,7 +349,7 @@ export class AIController {
     // ajuste por existencias: penalizar lo que sobra y priorizar lo escaso
     for (const k of RESOURCE_TYPES) {
       const st = res[k];
-      const f = st > 1500 ? 0.2 : st > 900 ? 0.45 : st > 500 ? 0.75 : st < 60 && era > 1 ? 1.35 : 1;
+      const f = st > 1500 ? 0.2 : st > 900 ? 0.45 : st > 500 ? 0.75 : era > 1 ? (st < 50 ? 1.8 : st < 150 ? 1.35 : 1) : 1;
       r[k] *= f;
     }
     const s = r.food + r.carbon + r.nova + r.ore || 1;
@@ -996,7 +996,10 @@ export class AIController {
         if (!b) continue;
         const c = p.techCost(t);
         let ok = true;
-        for (const r of RESOURCE_TYPES) if ((c[r] ?? 0) > p.res[r] - (r === 'food' || r === 'nova' ? reserve * 0.5 : 0)) ok = false;
+        for (const r of RESOURCE_TYPES) {
+          const cr = c[r] ?? 0;
+          if (cr > 0 && cr > p.res[r] - (r === 'food' || r === 'nova' ? reserve * 0.5 : 0)) ok = false;
+        }
         if (!ok) continue;
         if (rng.next() > this.d.researchChance) continue;
         if (this.w.queueResearch(b, id)) return true;
@@ -1103,7 +1106,10 @@ export class AIController {
         if (!c.ok) continue;
         const cost = p.stats_of(id).cost;
         let affordable = true;
-        for (const r of RESOURCE_TYPES) if ((cost[r] ?? 0) > p.res[r] - reserve[r]) affordable = false;
+        for (const r of RESOURCE_TYPES) {
+          const c = cost[r] ?? 0;
+          if (c > 0 && c > p.res[r] - reserve[r]) affordable = false;
+        }
         if (!affordable) continue;
         const wgt = (weights[ud.cls] ?? 0) / totalW;
         const have = (counts[ud.cls] ?? 0) / total;
