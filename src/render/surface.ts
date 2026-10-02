@@ -22,10 +22,12 @@ export const SURF = {
   grate: 13, // rejillas
   concrete: 14, // hormigón / ferrocemento
   light: 15, // luces y emisivos (sin detalle)
+  leaves: 16, // follaje en racimos
+  bark: 17, // corteza
 } as const;
 export type SurfId = (typeof SURF)[keyof typeof SURF];
 
-const LAYERS = 16;
+const LAYERS = 18;
 const S = 256;
 
 /**
@@ -48,6 +50,8 @@ const PROPS: [number, number, number, number][] = [
   [6.0, 1.2, 0.5, 0.8], // grate
   [1.4, 0.7, 0.0, 0.4], // concrete
   [1.0, 0.0, -1, 0.5], // light
+  [2.2, 1.6, 0.0, 0.3], // leaves
+  [2.0, 1.4, 0.0, 0.3], // bark
 ];
 
 // ───────────── ruido periódico (texturas que se repiten sin costuras) ─────────────
@@ -246,6 +250,25 @@ function generateLayers(): Uint8Array<ArrayBuffer> {
       }
       // 15 light: sin detalle
       put(15, i, 0.5, 0.5, 0.4, 1);
+      // 16 leaves: hojas superpuestas con huecos oscuros entre racimos
+      {
+        const [d1, d2, ] = worley(u, v, 18, 161);
+        const leaf = 1 - smooth(0.25, 0.55, d1);
+        const [e1] = worley(u + 0.37, v + 0.21, 30, 163);
+        const leaf2 = 1 - smooth(0.2, 0.5, e1);
+        const clump = fbm(u, v, 4, 3, 165);
+        const hgt = Math.max(leaf * 0.8, leaf2 * 0.6) * (0.6 + clump * 0.4);
+        const vein = 1 - smooth(0.0, 0.05, d2 - d1);
+        put(16, i, hgt, 0.32 + hgt * 0.5 + (n2 - 0.5) * 0.15 - vein * 0.08, 0.7 - hgt * 0.15, 0.35 + hgt * 0.65);
+      }
+      // 17 bark: surcos verticales y grietas
+      {
+        const ridge = vnoise(u, v * 0.1, 24, 171);
+        const ridge2 = vnoise(u + 0.5, v * 0.2, 48, 173);
+        const furrow = smooth(0.35, 0.65, ridge * 0.7 + ridge2 * 0.3);
+        const knot = smooth(0.8, 0.95, fbm(u, v, 6, 2, 175));
+        put(17, i, 0.25 + furrow * 0.6 - knot * 0.2, 0.35 + furrow * 0.35 + (n2 - 0.5) * 0.1, 0.88, 0.5 + furrow * 0.5);
+      }
     }
   }
   return data;

@@ -1,6 +1,91 @@
 // Árboles, recursos, decoración y monumentos del paisaje para cada planeta.
+import * as THREE from 'three';
 import { MB, C, type ModelDef } from './builder';
 import { RNG } from '../../core/rng';
+import { SURF } from '../surface';
+
+// ───────────── utilidades orgánicas ─────────────
+function h3(ix: number, iy: number, iz: number, seed: number): number {
+  let h = (ix * 374761393 + iy * 668265263 + iz * 1274126177 + seed * 2246822519) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+/** Ruido de valor 3D suave en [-1, 1] */
+function noise3(x: number, y: number, z: number, seed: number): number {
+  const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+  const fx = x - ix, fy = y - iy, fz = z - iz;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), w = fz * fz * (3 - 2 * fz);
+  const L = (a: number, b: number, t: number) => a + (b - a) * t;
+  const c = (dx: number, dy: number, dz: number) => h3(ix + dx, iy + dy, iz + dz, seed);
+  return L(L(L(c(0, 0, 0), c(1, 0, 0), u), L(c(0, 1, 0), c(1, 1, 0), u), v), L(L(c(0, 0, 1), c(1, 0, 1), u), L(c(0, 1, 1), c(1, 1, 1), u), v), w) * 2 - 1;
+}
+/** Desplaza radialmente los vértices de una geometría centrada en el origen */
+function displace(g: THREE.BufferGeometry, amp: number, freq: number, seed: number, flatBottom = -1e9) {
+  const p = g.attributes.position as THREE.BufferAttribute;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const n = noise3(v.x * freq, v.y * freq, v.z * freq, seed) * 0.7 + noise3(v.x * freq * 2.3, v.y * freq * 2.3, v.z * freq * 2.3, seed + 7) * 0.3;
+    v.multiplyScalar(1 + n * amp);
+    if (v.y < flatBottom) v.y = flatBottom;
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.deleteAttribute('normal');
+  g.computeVertexNormals();
+  return g;
+}
+/** Esfera abultada (copas de árbol, arbustos) */
+function lumpy(b: MB, r: number, x: number, y: number, z: number, color: number, seed: number, o: { sy?: number; amp?: number; seg?: number; mat?: number } = {}) {
+  const seg = o.seg ?? 10;
+  const g = displace(new THREE.SphereGeometry(1, seg, Math.max(5, Math.round(seg * 0.65))), o.amp ?? 0.22, 1.6, seed);
+  g.scale(r, r * (o.sy ?? 1), r);
+  return b.mesh(g, x, y, z, color, { flat: false, mat: o.mat ?? SURF.leaves });
+}
+/** Roca facetada con ruido */
+function rock(b: MB, r: number, x: number, y: number, z: number, color: number, seed: number, o: { sy?: number; detail?: number; mat?: number; em?: number } = {}) {
+  const g = new THREE.IcosahedronGeometry(1, o.detail ?? 1);
+  displace(g, 0.28, 1.3, seed, -0.35);
+  g.scale(r, r * (o.sy ?? 0.75), r);
+  return b.mesh(g, x, y, z, color, { mat: o.mat ?? SURF.rock, em: o.em });
+}
+/** Copa de árbol: racimo de bultos de follaje con variaciones de color */
+function crown(b: MB, x: number, y: number, z: number, r: number, c1: number, c2: number, rng: RNG, n = 5, sy = 0.8) {
+  lumpy(b, r * 0.72, x, y, z, c1, rng.int(0, 9999), { sy });
+  for (let i = 0; i < n - 1; i++) {
+    const a = (i / (n - 1)) * Math.PI * 2 + rng.range(0, 0.6);
+    const d = r * rng.range(0.38, 0.58);
+    lumpy(b, r * rng.range(0.45, 0.62), x + Math.cos(a) * d, y + rng.range(-0.25, 0.25) * r, z + Math.sin(a) * d, i % 2 ? c2 : c1, rng.int(0, 9999), { sy, seg: 9 });
+  }
+}
+/** Tronco con raíces ensanchadas */
+function trunkL(b: MB, h: number, r0: number, r1: number, color: number, lean = 0) {
+  b.limb([0, -0.05, 0], [lean, h, 0], r0, r1, color, { mat: SURF.bark, seg: 9 });
+  for (let i = 0; i < 4; i++) {
+    const a = i * 1.57 + 0.4;
+    b.limb([Math.cos(a) * r0 * 0.4, r0 * 1.4, Math.sin(a) * r0 * 0.4], [Math.cos(a) * r0 * 1.9, -0.02, Math.sin(a) * r0 * 1.9], r0 * 0.38, r0 * 0.18, color, { mat: SURF.bark, seg: 6 });
+  }
+}
+/** Capa cónica dentada de conífera */
+function coniferLayer(b: MB, r: number, h: number, x: number, y: number, z: number, color: number, seed: number) {
+  const g = new THREE.ConeGeometry(1, 1, 13, 3);
+  const p = g.attributes.position as THREE.BufferAttribute;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i);
+    const rad = Math.hypot(v.x, v.z);
+    if (rad > 1e-3) {
+      const ang = Math.atan2(v.z, v.x);
+      const j = 1 + noise3(Math.cos(ang) * 2.5, v.y * 2, Math.sin(ang) * 2.5, seed) * 0.25 + (Math.round(ang * 13 / (Math.PI * 2)) % 2 ? 0.12 : -0.06) * (0.5 - v.y);
+      v.x *= j;
+      v.z *= j;
+      if (v.y < -0.45) v.y -= 0.12 * rad; // puntas caídas
+    }
+    p.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  g.scale(r, h, r);
+  return b.mesh(g, x, y, z, color, { flat: false, mat: SURF.leaves });
+}
 
 export function buildTree(kind: string, variant: number, c1: number, c2: number): ModelDef {
   const b = new MB();
@@ -10,65 +95,92 @@ export function buildTree(kind: string, variant: number, c1: number, c2: number)
   const trunk = 0x5a3e28;
   switch (kind) {
     case 'redwood': {
+      // secuoya de Endor: tronco altísimo y capas dentadas de follaje
       const h = v(3.4, 4.4);
-      const tTop = h * 0.5 + 1.0;
-      b.cyl(0.16, 0.32, tTop, 0, tTop / 2, 0, 0x6a3a22, { seg: 7 });
-      b.cyl(0.33, 0.42, 0.3, 0, 0.15, 0, 0x5a3220, { seg: 7 });
+      const tTop = h * 0.55 + 1.0;
+      trunkL(b, tTop + 0.6, 0.34, 0.12, 0x6a3a22);
       b.part('leaves', 'static');
-      for (let i = 0; i < 4; i++) b.cone(1.0 - i * 0.17, 1.25, 0, h * 0.5 + i * 0.68, 0, i % 2 ? c1 : c2, { seg: 7 });
+      for (let i = 0; i < 5; i++) coniferLayer(b, 1.05 - i * 0.17, 1.0, 0, h * 0.48 + i * 0.58, 0, i % 2 ? c1 : c2, r.int(0, 9999));
       break;
     }
     case 'fern_tree': {
       const h = v(1.4, 2);
-      b.cyl(0.08, 0.12, h, 0, h / 2, 0, trunk, { seg: 6 });
+      trunkL(b, h, 0.1, 0.07, trunk, v(-0.1, 0.1));
       b.part('leaves');
-      for (let i = 0; i < 6; i++) b.box(0.9, 0.04, 0.2, Math.cos(i) * 0.4, h, Math.sin(i) * 0.4, c1, { ry: i, rz: -0.35 });
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + v(0, 0.4);
+        b.limb([0, h, 0], [Math.cos(a) * 0.8, h - 0.25, Math.sin(a) * 0.8], 0.09, 0.02, i % 2 ? c1 : c2, { mat: SURF.leaves, seg: 5, sx: 1 });
+      }
+      lumpy(b, 0.2, 0, h + 0.05, 0, c1, r.int(0, 999), { seg: 8 });
       break;
     }
     case 'wroshyr': {
+      // wroshyr de Kashyyyk: tronco enorme y copas planas en pisos
       const h = v(3.6, 4.8);
-      b.cyl(0.25, 0.42, h, 0, h / 2, 0, 0x6a4a2a, { seg: 8 });
+      trunkL(b, h + 0.3, 0.42, 0.22, 0x6a4a2a);
+      for (let i = 0; i < 3; i++) {
+        const a = i * 2.1 + v(0, 0.5);
+        b.limb([0, h * (0.55 + i * 0.12), 0], [Math.cos(a) * 0.9, h * (0.62 + i * 0.12), Math.sin(a) * 0.9], 0.1, 0.05, 0x6a4a2a, { mat: SURF.bark, seg: 6 });
+      }
       b.part('leaves');
-      for (let i = 0; i < 3; i++) b.cyl(1.0 - i * 0.2, 0.9 - i * 0.2, 0.35, 0, h * 0.6 + i * 0.7, 0, i % 2 ? c1 : c2, { seg: 8 });
-      b.sphere(0.6, 0, h + 0.2, 0, c1, { seg: 8 });
+      for (let i = 0; i < 3; i++) crown(b, 0, h * 0.62 + i * 0.75, 0, 1.15 - i * 0.22, i % 2 ? c1 : c2, c2, r, 5, 0.42);
       break;
     }
     case 'jungle_palm':
     case 'palm': {
       const h = v(1.8, 2.6);
-      b.cyl(0.07, 0.11, h, 0.1, h / 2, 0, kind === 'palm' ? 0x8a6a40 : trunk, { seg: 6, rz: 0.08 });
+      const lean = v(0.1, 0.3);
+      // tronco curvado en tres tramos
+      const tc = kind === 'palm' ? 0x8a6a40 : trunk;
+      b.limb([0, -0.05, 0], [lean * 0.3, h * 0.4, 0], 0.12, 0.1, tc, { mat: SURF.bark, seg: 8 });
+      b.limb([lean * 0.3, h * 0.4, 0], [lean * 0.7, h * 0.75, 0], 0.1, 0.085, tc, { mat: SURF.bark, seg: 8 });
+      b.limb([lean * 0.7, h * 0.75, 0], [lean, h, 0], 0.085, 0.07, tc, { mat: SURF.bark, seg: 8 });
       b.part('leaves');
-      for (let i = 0; i < 7; i++) {
-        const a = (i / 7) * Math.PI * 2;
-        b.box(1.0, 0.04, 0.22, 0.2 + Math.cos(a) * 0.45, h + 0.05, Math.sin(a) * 0.45, i % 2 ? c1 : c2, { ry: -a, rz: -0.45 });
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + v(0, 0.3);
+        const mid: [number, number, number] = [lean + Math.cos(a) * 0.45, h + 0.15, Math.sin(a) * 0.45];
+        b.limb([lean, h + 0.05, 0], mid, 0.035, 0.11, i % 2 ? c1 : c2, { mat: SURF.leaves, seg: 5 });
+        b.limb(mid, [lean + Math.cos(a) * 1.0, h - 0.3, Math.sin(a) * 1.0], 0.11, 0.015, i % 2 ? c1 : c2, { mat: SURF.leaves, seg: 5 });
       }
+      b.sphere(0.1, lean, h + 0.02, 0, 0x6a4a2a, { seg: 8, mat: SURF.bark });
       break;
     }
     case 'naboo_tree':
     case 'round_tree': {
-      const h = v(1.2, 1.8);
-      b.cyl(0.08, 0.13, h, 0, h / 2, 0, trunk, { seg: 6 });
+      const h = v(1.1, 1.6);
+      trunkL(b, h, 0.12, 0.07, trunk, v(-0.08, 0.08));
+      for (let i = 0; i < 3; i++) {
+        const a = i * 2.1 + v(0, 0.6);
+        b.limb([0, h * 0.7, 0], [Math.cos(a) * 0.35, h + 0.15, Math.sin(a) * 0.35], 0.05, 0.03, trunk, { mat: SURF.bark, seg: 6 });
+      }
       b.part('leaves');
-      b.sphere(v(0.55, 0.75), 0, h + 0.3, 0, c1, { seg: 7, flat: true });
-      b.sphere(0.4, 0.3, h + 0.1, 0.2, c2, { seg: 6, flat: true });
-      b.sphere(0.35, -0.25, h + 0.15, -0.2, c2, { seg: 6, flat: true });
+      crown(b, 0, h + 0.38, 0, v(0.75, 0.95), c1, c2, r, 6, 0.82);
       break;
     }
     case 'gnarltree':
     case 'swamp_tree': {
+      // árbol retorcido de pantano con raíces aéreas y musgo colgante
       const h = v(1.8, 2.6);
-      b.cyl(0.12, 0.35, h, 0, h / 2, 0, 0x4a3a2a, { seg: 6, rz: v(-0.15, 0.15) });
-      for (let i = 0; i < 4; i++) b.cyl(0.05, 0.08, 0.8, Math.cos(i * 1.6) * 0.35, 0.25, Math.sin(i * 1.6) * 0.35, 0x4a3a2a, { rx: Math.sin(i * 1.6) * 0.8, rz: -Math.cos(i * 1.6) * 0.8 });
+      const pts: [number, number, number][] = [[0, -0.05, 0], [v(-0.15, 0.15), h * 0.35, v(-0.15, 0.15)], [v(-0.25, 0.25), h * 0.7, v(-0.25, 0.25)], [v(-0.15, 0.15), h, v(-0.15, 0.15)]];
+      for (let i = 0; i < 3; i++) b.limb(pts[i], pts[i + 1], 0.3 - i * 0.07, 0.24 - i * 0.07, 0x4a3a2a, { mat: SURF.bark, seg: 8 });
+      for (let i = 0; i < 5; i++) {
+        const a = i * 1.26 + v(0, 0.4);
+        b.limb([Math.cos(a) * 0.1, 0.5, Math.sin(a) * 0.1], [Math.cos(a) * 0.65, -0.05, Math.sin(a) * 0.65], 0.07, 0.04, 0x4a3a2a, { mat: SURF.bark, seg: 6 });
+      }
       b.part('leaves');
-      b.sphere(0.8, 0, h + 0.1, 0, c1, { sy: 0.45, seg: 7, flat: true });
-      for (let i = 0; i < 5; i++) b.box(0.05, 0.7, 0.05, Math.cos(i * 1.3) * 0.6, h - 0.3, Math.sin(i * 1.3) * 0.6, c2);
+      crown(b, pts[3][0], h + 0.1, pts[3][2], 0.95, c1, c2, r, 5, 0.5);
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.05 + v(0, 0.5);
+        b.limb([Math.cos(a) * 0.6, h - 0.05, Math.sin(a) * 0.6], [Math.cos(a) * 0.62, h - v(0.5, 0.9), Math.sin(a) * 0.62], 0.04, 0.015, c2, { mat: SURF.fur, seg: 5 });
+      }
       break;
     }
     case 'mushroom': {
       const h = v(1.6, 2.6);
-      b.cyl(0.12, 0.18, h, 0, h / 2, 0, 0xe8e0c0, { seg: 8 });
+      const cr = v(0.7, 1.0);
+      b.limb([0, -0.05, 0], [v(-0.1, 0.1), h, 0], 0.2, 0.12, 0xe8e0c0, { mat: SURF.skin, seg: 10 });
       b.part('leaves');
-      b.sphere(v(0.7, 1.0), 0, h, 0, c1, { sy: 0.4, seg: 12 });
+      b.lathe([[0.0, -0.08], [cr * 0.9, -0.12], [cr, 0.0], [cr * 0.85, cr * 0.25], [cr * 0.5, cr * 0.4], [0.0, cr * 0.45]], 0, h - 0.05, 0, c1, { seg: 16, mat: SURF.skin });
       b.sphere(0.06, 0.3, h + 0.25, 0.2, 0xfff0a0, { em: 1 });
       b.sphere(0.05, -0.3, h + 0.22, -0.1, 0xfff0a0, { em: 1 });
       break;
@@ -105,17 +217,25 @@ export function buildTree(kind: string, variant: number, c1: number, c2: number)
     }
     case 'dead_tree': {
       const h = v(1.2, 1.8);
-      b.cyl(0.06, 0.12, h, 0, h / 2, 0, 0x6a5a48, { seg: 5 });
+      trunkL(b, h, 0.12, 0.05, 0x6a5a48, v(-0.1, 0.1));
       b.part('leaves');
-      for (let i = 0; i < 3; i++) b.cyl(0.03, 0.05, 0.7, Math.cos(i * 2) * 0.2, h * 0.7 + i * 0.1, Math.sin(i * 2) * 0.2, 0x6a5a48, { rx: Math.sin(i * 2) * 0.9, rz: -Math.cos(i * 2) * 0.9 });
+      for (let i = 0; i < 4; i++) {
+        const a = i * 1.6 + v(0, 0.5);
+        const y0 = h * (0.5 + i * 0.12);
+        const tip: [number, number, number] = [Math.cos(a) * 0.55, y0 + 0.4, Math.sin(a) * 0.55];
+        b.limb([0, y0, 0], tip, 0.045, 0.02, 0x6a5a48, { mat: SURF.bark, seg: 5 });
+        b.limb(tip, [tip[0] + Math.cos(a + 0.8) * 0.25, tip[1] + 0.2, tip[2] + Math.sin(a + 0.8) * 0.25], 0.02, 0.008, 0x6a5a48, { mat: SURF.bark, seg: 4 });
+      }
       break;
     }
     case 'rock_spire':
     case 'obsidian': {
       b.part('leaves');
       const h = v(1.5, 2.8);
-      b.cone(0.4, h, 0, h / 2, 0, c1, { seg: 5, rz: v(-0.1, 0.1) });
-      b.cone(0.25, h * 0.6, 0.25, h * 0.3, 0.15, c2, { seg: 5 });
+      const g1 = displace(new THREE.ConeGeometry(0.4, h, 7, 4), 0.18, 2.2, r.int(0, 999));
+      b.mesh(g1, 0, h / 2, 0, c1, { mat: SURF.rock, rz: v(-0.1, 0.1) });
+      const g2 = displace(new THREE.ConeGeometry(0.25, h * 0.6, 6, 3), 0.18, 2.5, r.int(0, 999));
+      b.mesh(g2, 0.25, h * 0.3, 0.15, c2, { mat: SURF.rock });
       if (kind === 'obsidian') b.crystal(0.08, 0.3, 0.2, h * 0.5, 0.15, 0xff5a20, { em: 1.2 });
       break;
     }
@@ -128,9 +248,9 @@ export function buildTree(kind: string, variant: number, c1: number, c2: number)
       break;
     }
     default: {
-      b.cyl(0.08, 0.12, 1.2, 0, 0.6, 0, trunk);
+      trunkL(b, 1.2, 0.12, 0.07, trunk);
       b.part('leaves');
-      b.sphere(0.6, 0, 1.4, 0, c1, { seg: 7, flat: true });
+      crown(b, 0, 1.45, 0, 0.7, c1, c2, r, 5);
     }
   }
   return b.build('tree:' + kind + ':' + variant);
@@ -144,13 +264,14 @@ export function buildResource(kind: string, variant: number, planetBiome: string
     case 'bush': {
       const leaf = planetBiome === 'ice' ? 0x8aa0b0 : planetBiome === 'desert' || planetBiome === 'redrock' ? 0x8a8a4a : planetBiome === 'volcanic' ? 0x4a3a30 : 0x3a7a3a;
       const berry = planetBiome === 'ice' ? 0x9ad8ff : planetBiome === 'fungal' ? 0xff5aa0 : planetBiome === 'desert' ? 0xd86a2a : 0xd02a4a;
-      b.sphere(0.42, 0, 0.32, 0, leaf, { sy: 0.75, seg: 7, flat: true });
-      b.sphere(0.28, 0.2, 0.22, 0.15, leaf, { seg: 6, flat: true });
+      lumpy(b, 0.42, 0, 0.3, 0, leaf, variant * 7 + 1, { sy: 0.75, seg: 10 });
+      lumpy(b, 0.28, 0.2, 0.22, 0.15, leaf, variant * 7 + 2, { seg: 8 });
+      lumpy(b, 0.24, -0.22, 0.2, -0.1, leaf, variant * 7 + 3, { seg: 8 });
       for (let i = 0; i < 9; i++) b.sphere(0.06, r.range(-0.35, 0.35), r.range(0.25, 0.55), r.range(-0.35, 0.35), berry, { seg: 5, em: planetBiome === 'ice' || planetBiome === 'fungal' ? 0.6 : 0.05 });
       break;
     }
     case 'nova': {
-      b.dodeca(0.32, 0, 0.18, 0, 0x5a6070);
+      rock(b, 0.36, 0, 0.12, 0, 0x5a6070, variant * 13 + 5);
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2 + r.range(0, 0.5);
         const h = r.range(0.4, 0.9);
@@ -160,11 +281,12 @@ export function buildResource(kind: string, variant: number, planetBiome: string
       break;
     }
     case 'ore': {
-      const rock = planetBiome === 'ice' ? 0x8a98a8 : planetBiome === 'volcanic' ? 0x3a3030 : 0x7a6a5a;
-      b.dodeca(0.42, 0, 0.3, 0, rock);
-      b.dodeca(0.28, 0.3, 0.2, 0.2, rock);
-      b.dodeca(0.22, -0.25, 0.15, -0.25, rock);
-      for (let i = 0; i < 5; i++) b.box(0.1, 0.06, 0.18, r.range(-0.3, 0.3), r.range(0.3, 0.6), r.range(-0.3, 0.3), 0xd8a050, { ry: r.range(0, 3), metal: 1, em: 0.2 });
+      const rock_ = planetBiome === 'ice' ? 0x8a98a8 : planetBiome === 'volcanic' ? 0x3a3030 : 0x7a6a5a;
+      rock(b, 0.46, 0, 0.2, 0, rock_, variant * 11 + 1);
+      rock(b, 0.3, 0.3, 0.12, 0.22, rock_, variant * 11 + 2);
+      rock(b, 0.25, -0.27, 0.1, -0.25, rock_, variant * 11 + 3);
+      // vetas de mineral brillante
+      for (let i = 0; i < 6; i++) rock(b, 0.07, r.range(-0.3, 0.3), r.range(0.3, 0.55), r.range(-0.3, 0.3), 0xd8a050, variant * 17 + i, { sy: 0.6, detail: 0, mat: SURF.panel, em: 0.15 });
       break;
     }
     case 'carcass': {
@@ -191,14 +313,14 @@ export function buildDecor(kind: string, planetColor: number): ModelDef {
   const r = new RNG(kind.length * 99 + 1);
   switch (kind) {
     case 'rock':
-      b.dodeca(0.35, 0, 0.15, 0, planetColor, { sy: 0.6 });
-      b.dodeca(0.2, 0.3, 0.08, 0.1, planetColor, { sy: 0.6 });
+      rock(b, 0.38, 0, 0.1, 0, planetColor, 3);
+      rock(b, 0.22, 0.32, 0.05, 0.12, planetColor, 4);
       break;
     case 'ice_rock':
-      b.dodeca(0.4, 0, 0.15, 0, 0xc8dcec, { sy: 0.7 });
+      rock(b, 0.42, 0, 0.12, 0, 0xc8dcec, 5, { mat: SURF.glass });
       break;
     case 'obsidian_rock':
-      b.dodeca(0.35, 0, 0.15, 0, 0x1a1616, { sy: 0.7 });
+      rock(b, 0.38, 0, 0.12, 0, 0x1a1616, 6, { mat: SURF.glass });
       b.crystal(0.06, 0.2, 0.15, 0.25, 0, 0xff5a20, { em: 1.5 });
       break;
     case 'snow_mound':
@@ -264,7 +386,7 @@ export function buildDecor(kind: string, planetColor: number): ModelDef {
       }
       break;
     default:
-      b.dodeca(0.3, 0, 0.12, 0, planetColor, { sy: 0.6 });
+      rock(b, 0.32, 0, 0.1, 0, planetColor, 9);
   }
   void r;
   return b.build('decor:' + kind);

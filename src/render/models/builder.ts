@@ -243,13 +243,14 @@ export class MB {
   wedge(w: number, h: number, d: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
     const g = new THREE.BufferGeometry();
     const hw = w / 2, hd = d / 2;
-    // base rectangular en y=0, arista superior en y=h a lo largo de z
+    // base rectangular en y=0, arista superior en y=h a lo largo de z (caras en sentido antihorario visto desde fuera)
+    const A = [-hw, 0, -hd], B = [hw, 0, -hd], Cc = [0, h, -hd], D = [-hw, 0, hd], E = [hw, 0, hd], F = [0, h, hd];
     const v = [
-      -hw, 0, -hd, hw, 0, -hd, 0, h, -hd,
-      -hw, 0, hd, 0, h, hd, hw, 0, hd,
-      -hw, 0, -hd, 0, h, -hd, 0, h, hd, -hw, 0, -hd, 0, h, hd, -hw, 0, hd,
-      hw, 0, -hd, hw, 0, hd, 0, h, hd, hw, 0, -hd, 0, h, hd, 0, h, -hd,
-      -hw, 0, -hd, -hw, 0, hd, hw, 0, hd, -hw, 0, -hd, hw, 0, hd, hw, 0, -hd,
+      ...A, ...Cc, ...B, // frente
+      ...D, ...E, ...F, // fondo
+      ...A, ...D, ...F, ...A, ...F, ...Cc, // vertiente izquierda
+      ...B, ...Cc, ...F, ...B, ...F, ...E, // vertiente derecha
+      ...A, ...B, ...E, ...A, ...E, ...D, // base
     ];
     g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
     return this.add(g, x, y, z, color, o);

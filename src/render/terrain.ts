@@ -107,8 +107,8 @@ export class TerrainRenderer {
         col[i * 3] = tmp.r;
         col[i * 3 + 1] = tmp.g;
         col[i * 3 + 2] = tmp.b;
-        splat[i * 4] = (wBase + wAlt + wHigh * 0.6) / sum;
-        splat[i * 4 + 1] = (wCliff + wHigh * 0.4) / sum;
+        splat[i * 4] = (wBase + wAlt + wHigh * 0.92) / sum;
+        splat[i * 4 + 1] = (wCliff + wHigh * 0.08) / sum;
         splat[i * 4 + 2] = (wLow + wBed) / sum;
         splat[i * 4 + 3] = wPath / sum;
       }
