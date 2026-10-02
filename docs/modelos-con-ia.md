@@ -22,9 +22,11 @@ No hace falta hacerlo todo: cada archivo que añadas sustituye a su modelo y el 
 
 ## 3. Cómo entregarme los archivos
 
-- **Dónde:** en GitHub, entra en el repositorio, ve a la carpeta indicada y pulsa **Add file → Upload files**. También puedes adjuntarlos en el chat.
+- **Dónde:** en la carpeta `assets/` del repositorio. En GitHub, entra en la subcarpeta que corresponda (`assets/terrain`, `assets/models/empire`...) y pulsa **Add file → Upload files**. También puedes adjuntarlos en el chat.
 - **Nombres:** exactamente los de las listas de abajo, en minúsculas y sin espacios.
-- **Formatos:** texturas en `.jpg` o `.png`; modelos en `.glb` (también valen `.gltf` y `.fbx`).
+- **Formatos:** texturas en `.jpg` o `.png`; modelos en `.glb` o `.fbx`. Un `.gltf` con archivos aparte no sirve; si te lo dan así, pide la versión `.glb`.
+- **Compresión:** sin compresión Draco. Si la herramienta ofrece *Draco*, desactívalo.
+- **Tamaño de los archivos:** todo se mete dentro de `Jugar.html`, así que conviene que pesen poco. Texturas en JPG de 1024×1024 o 2048×2048, de menos de 1 MB cada una. Modelos de menos de 5 MB.
 - **Polígonos:** en Meshy o Tripo, elige *Low poly* o pon un límite de polígonos.
   - Soldados y trabajadores: hasta 6.000 triángulos.
   - Héroes: hasta 10.000 triángulos.
@@ -35,7 +37,7 @@ No hace falta hacerlo todo: cada archivo que añadas sustituye a su modelo y el 
 
 ## 4. Texturas de terreno (ChatGPT o Gemini)
 
-Carpeta: `public/textures/terrain/`
+Carpeta: `assets/terrain/`
 
 **Prompt** (cambia lo que va entre corchetes, una textura por mensaje):
 
@@ -93,7 +95,7 @@ Las armas no hacen falta: las hago yo y se las pongo en la mano. Los personajes 
 
 ### Paso 4: animaciones (solo una vez para todos)
 
-Todos los personajes de Mixamo comparten el mismo esqueleto, así que un solo juego de animaciones sirve para todos. Busca estas en Mixamo y descarga cada una con **Format: FBX** y **Skin: Without Skin**:
+Todos los personajes de Mixamo comparten el mismo esqueleto, así que un solo juego de animaciones sirve para todos. Busca estas en Mixamo y descarga cada una con **Format: FBX** y **Skin: Without Skin**. Si la animación tiene la casilla **In Place**, márcala para que el personaje no se desplace solo:
 
 | Archivo | Qué buscar en Mixamo |
 |---|---|
@@ -106,11 +108,11 @@ Todos los personajes de Mixamo comparten el mismo esqueleto, así que un solo ju
 | `work.fbx` | Hammering, Mining o Digging |
 | `death.fbx` | Dying o Death |
 
-Carpeta de las animaciones: `public/models/anims/`
+Carpeta de las animaciones: `assets/models/anims/`
 
 ### Lista de personajes
 
-Carpeta: `public/models/<civilización>/` (por ejemplo, `public/models/empire/trooper.fbx`).
+Carpeta: `assets/models/<civilización>/` (por ejemplo, `assets/models/empire/trooper.fbx`).
 
 Si falta el modelo pesado (`heavy_trooper`), el juego usa el normal (`trooper`) con otra arma.
 
@@ -171,7 +173,7 @@ Si falta el modelo pesado (`heavy_trooper`), el juego usa el normal (`trooper`) 
 - `berserker`: wookiee berserker enorme con pintura de guerra y armadura de madera.
 - `jedi_knight` y `jedi_master`: wookiee jedi con túnica.
 
-**Héroes** (carpeta `public/models/heroes/`)
+**Héroes** (carpeta `assets/models/heroes/`)
 
 | Archivo | Héroe |
 |---|---|
@@ -205,7 +207,7 @@ Si falta el modelo pesado (`heavy_trooper`), el juego usa el normal (`trooper`) 
 
 En Sketchfab, busca el nombre, activa el filtro **Downloadable** y descarga en formato **glTF** o **GLB**. Los vehículos no necesitan esqueleto: el movimiento lo pongo yo.
 
-Carpeta: `public/models/<civilización>/<archivo>.glb`
+Carpeta: `assets/models/<civilización>/<archivo>.glb`
 
 | Archivo | Imperio | Rebeldes | República | Confederación | Federación | Naboo | Gungans | Wookiees |
 |---|---|---|---|---|---|---|---|---|
@@ -223,9 +225,13 @@ Carpeta: `public/models/<civilización>/<archivo>.glb`
 
 Las únicas: `airspeeder` (rebeldes, aerodeslizador T-47 de Hoth), `royal_crusader` (Naboo, Flash speeder con piloto) y `fambaa` (gungans, fambaa con generador de escudo).
 
-## 7. Qué hago yo con los archivos
+## 7. Qué hace el juego con los archivos
 
-- Los cargo al iniciar la partida. Si un archivo existe, sustituye al modelo generado; si no, se usa el de siempre.
-- Ajusto el tamaño, la orientación y el color de equipo (el magenta).
-- Pongo las armas en la mano y asigno las animaciones a cada acción.
-- Los incluyo también en `Jugar.html` para que siga abriéndose con doble clic.
+El juego ya está preparado para recibirlos:
+
+- **Carga automática.** Al empezar la partida carga lo que haya en `assets/`. Si un archivo existe, sustituye al modelo generado; si no, se usa el de siempre.
+- **Ajustes automáticos.** El tamaño, la orientación y el color de equipo (el magenta) se ajustan solos.
+- **Armas y animaciones.** A los personajes con esqueleto les pone un arma en la mano derecha (rifle, pistola o sable según la unidad) y les asigna las animaciones: reposo, andar, disparar, cuerpo a cuerpo, trabajar y morir.
+- **Unidades derivadas.** Si falta el modelo de una unidad pesada o de élite, usa el de la normal.
+- **Edificios.** Admiten modelo propio con el mismo sistema, por ejemplo `assets/models/empire/command_center.glb`.
+- **Doble clic.** Al regenerar `Jugar.html` (`npm run build:single`), los archivos van dentro y siguen funcionando con doble clic. Si los subes a GitHub, yo lo regenero.

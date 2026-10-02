@@ -11,6 +11,8 @@ export interface AnimState {
   time: number;
   seed: number;
   spin: number; // rotación de ruedas
+  /** cadáver (los modelos con esqueleto reproducen la animación de muerte) */
+  dead?: boolean;
 }
 
 const tmpM = new THREE.Matrix4();

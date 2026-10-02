@@ -20,6 +20,8 @@ import { buildTree, buildResource, buildDecor, buildLandmark } from './models/na
 import type { ModelDef } from './models/builder';
 import { Effects } from './effects';
 import { makeEnvironment } from './environment';
+import { findExtModel, ExtStaticBatch, ExtSkinnedBatch, weaponObject, type DrawBatch } from './external';
+import { UNITS } from '../data/units';
 import { PLAYER_COLORS, GAIA_COLOR } from '../data/civs';
 import { BOLT_COLORS } from '../sim/combat';
 import { SABER } from '../data/units';
@@ -84,7 +86,7 @@ export class GameRenderer {
   private material: THREE.MeshStandardMaterial;
   private vegMaterial: THREE.MeshStandardMaterial;
   private holoMat: THREE.ShaderMaterial;
-  private batches = new Map<string, ModelBatch>();
+  private batches = new Map<string, DrawBatch>();
   private staticBatches = new Map<string, ModelBatch>();
   private modelCache = new Map<string, ModelDef>();
   private unitGroup = new THREE.Group();
@@ -350,12 +352,48 @@ export class GameRenderer {
     return m;
   }
 
-  private batch(key: string, make: () => ModelDef, holo = false): ModelBatch {
+  private batch(key: string, make: () => ModelDef, holo = false): DrawBatch {
     let b = this.batches.get(key);
     if (!b) {
       b = new ModelBatch(this.model(key, make), this.unitGroup, this.material, { shadows: this.settings.shadows, holo: holo ? this.holoMat : null });
       this.batches.set(key, b);
     }
+    return b;
+  }
+
+  /** Lote de una unidad: modelo propio del jugador (assets/) si existe, si no el generado */
+  private unitBatch(defId: string, owner: number): DrawBatch {
+    const p = this.w.players[owner];
+    const key = 'u:' + p.civ.style + ':' + defId;
+    let b = this.batches.get(key);
+    if (b) return b;
+    const def = this.model(key, () => buildUnitModel(defId, p.civ.style, p.civ.saber));
+    const ud = UNITS[defId];
+    const ext = findExtModel(p.civ.id, defId, ud.cls === 'hero');
+    if (ext) {
+      if (ext.skinned) {
+        const melee = ud.attack?.type === 'melee' || !!ud.saberColor;
+        const saber = !!ud.saberColor || ud.cls === 'jediKnight' || ud.cls === 'jediMaster';
+        const pistol = ud.cls === 'hero' && !saber && (ud.attack?.range ?? 0) < 6;
+        const wk = ud.cls === 'worker' || ud.cls === 'animal' || !ud.attack ? 'none' : saber ? 'saber' : pistol ? 'pistol' : melee ? 'none' : 'rifle';
+        b = new ExtSkinnedBatch(ext, this.unitGroup, def.height, def.radius, this.settings.shadows, weaponObject(wk, ud.saberColor ?? p.civ.saber), melee, pistol);
+      } else b = new ExtStaticBatch(ext, this.unitGroup, def.height, def.radius, def.parts.some((pp) => pp.anim === 'bob'), this.settings.shadows);
+    } else b = new ModelBatch(def, this.unitGroup, this.material, { shadows: this.settings.shadows });
+    this.batches.set(key, b);
+    return b;
+  }
+
+  /** Lote de un edificio (modelo propio o generado) */
+  private buildingBatch(defId: string, owner: number): DrawBatch {
+    const p = this.w.players[owner];
+    const key = 'b:' + p.civ.style + ':' + defId;
+    let b = this.batches.get(key);
+    if (b) return b;
+    const def = this.model(key, () => buildBuildingModel(defId, p.civ.style));
+    const ext = findExtModel(p.civ.id, defId, false);
+    if (ext && !ext.skinned) b = new ExtStaticBatch(ext, this.unitGroup, def.height, def.radius, false, this.settings.shadows);
+    else b = new ModelBatch(def, this.unitGroup, this.material, { shadows: this.settings.shadows, holo: this.holoMat });
+    this.batches.set(key, b);
     return b;
   }
 
@@ -430,8 +468,8 @@ export class GameRenderer {
       if (!own && vis < 2 && !this.seenBuildings.has(e.id)) continue;
       if (vis === 0) continue;
       const p = w.players[e.owner];
-      const key = 'b:' + p.civ.style + ':' + e.defId;
-      const bt = this.batch(key, () => buildBuildingModel(e.defId, p.civ.style), true);
+      const bt = this.buildingBatch(e.defId, e.owner);
+      void p;
       const h = this.buildingHeight(e);
       tmpM.makeTranslation(e.x, h, e.y);
       const flash = Math.max(0, 1 - (gt - e.lastHitTime) * 5) * 0.25 + (this.hovered === e.id ? 0.12 : 0);
@@ -594,8 +632,8 @@ export class GameRenderer {
     const w = this.w;
     const p = w.players[e.owner];
     const ud = e.ud!;
-    const key = 'u:' + p.civ.style + ':' + e.defId;
-    const bt = this.batch(key, () => buildUnitModel(e.defId, p.civ.style, p.civ.saber));
+    const bt = this.unitBatch(e.defId, e.owner);
+    const skinned = bt instanceof ExtSkinnedBatch;
     let z = w.map.surfaceAt(x, y);
     if (!e.isAir && w.map.liquid !== 'none' && w.map.liquid !== 'ice' && w.map.heightAt(x, y) < w.map.waterLevel) z = w.map.waterLevel - 0.22;
     let ang = e.pangle + angleDiff(e.pangle, e.angle) * alpha;
@@ -619,7 +657,7 @@ export class GameRenderer {
       if (mech) {
         roll = k * 0.35;
         bright = 0.35;
-      } else roll = k * (Math.PI / 2) * (e.id % 2 ? 1 : -1);
+      } else if (!skinned) roll = k * (Math.PI / 2) * (e.id % 2 ? 1 : -1);
       if (t > 6) yoff = -(t - 6) * 0.25;
       if (t > 10) return;
       bright *= 0.85;
@@ -642,9 +680,10 @@ export class GameRenderer {
       time: this.time,
       seed: e.id * 0.37,
       spin: e.distMoved / 0.5,
+      dead,
     };
     const saber = ud.saberColor ?? (ud.cls === 'jediKnight' || ud.cls === 'jediMaster' ? p.civ.saber : SABER.blue);
-    bt.push(tmpM, this.teamColor(e.owner), tmpC2.setHex(saber), bright, flash, 1, anim);
+    bt.push(tmpM, this.teamColor(e.owner), tmpC2.setHex(saber), bright, flash, 1, anim, e.id);
     if (!dead) {
       this.recordScreen(e, z + bt.def.height + 0.25, Math.max(10, e.radius * 30));
       if (this.selected.has(e.id) || this.hovered === e.id) {

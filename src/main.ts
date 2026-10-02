@@ -6,6 +6,7 @@ import '@fontsource/exo-2/latin-400.css';
 import '@fontsource/exo-2/latin-600.css';
 import './ui/styles.css';
 import { enterFullscreen } from './ui/fullscreen';
+import { externalReady, loadExternalAssets } from './render/external';
 import { MainMenu, SkirmishScreen, showCrawl, instantSetup, optionsScreen, creditsScreen } from './ui/screens';
 import { encyclopedia } from './ui/encyclopedia';
 import { GameSession } from './game';
@@ -13,6 +14,7 @@ import type { GameSetup } from './sim/types';
 import { settings } from './ui/settings';
 import { startConquest } from './galactic/conquest';
 import { audio } from './audio/audio';
+import { h } from './ui/dom';
 
 const app = document.getElementById('app')!;
 let menu: MainMenu | null = null;
@@ -59,6 +61,17 @@ function showMenu() {
 
 function launch(setup: GameSetup, after: () => void, onResult?: (win: boolean) => void) {
   if (settings().fullscreen) enterFullscreen();
+  // modelos y texturas propios (assets/): la partida espera a que terminen de cargar
+  if (!externalReady()) {
+    clearApp();
+    app.appendChild(h('div', { class: 'screen', style: 'align-items:center;justify-content:center' }, h('h1', null, 'Cargando recursos...')));
+    loadExternalAssets().then(() => startGame(setup, after, onResult));
+    return;
+  }
+  startGame(setup, after, onResult);
+}
+
+function startGame(setup: GameSetup, after: () => void, onResult?: (win: boolean) => void) {
   clearApp();
   audio.setAmbience(setup.planet ? (await_planet_biome(setup.planet)) : '');
   const s = new GameSession(app, setup, (r) => {
@@ -79,6 +92,8 @@ function await_planet_biome(id: string): string {
 
 // arranque
 (window as any).__audio = audio;
+// empezar a cargar en segundo plano los recursos propios mientras se ve el menú
+void loadExternalAssets();
 const params = new URLSearchParams(location.search);
 if (params.get('auto')) {
   // modo de prueba: partida directa
