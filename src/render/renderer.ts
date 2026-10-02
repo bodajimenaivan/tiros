@@ -17,7 +17,7 @@ import { createModelMaterial, createHologramMaterial, sharedUniforms } from './m
 import { buildUnitModel } from './models/unitModels';
 import { buildBuildingModel } from './models/buildingModels';
 import { buildTree, buildResource, buildDecor, buildLandmark } from './models/natureModels';
-import type { ModelDef } from './models/builder';
+import { MB, type ModelDef } from './models/builder';
 import { Effects } from './effects';
 import { makeEnvironment } from './environment';
 import { findExtModel, ExtStaticBatch, ExtSkinnedBatch, weaponObject, type DrawBatch } from './external';
@@ -92,6 +92,19 @@ export class GameRenderer {
   private unitGroup = new THREE.Group();
   private staticGroup = new THREE.Group();
   private staticDirty = true;
+  private staticCamX = -999;
+  private staticCamZ = -999;
+  private staticCamD = 1;
+  private staticLodBuilt = -1;
+  private frustum = new THREE.Frustum();
+  private frustumM = new THREE.Matrix4();
+  private cullS = new THREE.Sphere();
+  /** ¿Está una esfera dentro de la vista (con margen para las sombras)? */
+  private inView(x: number, y: number, z: number, r: number): boolean {
+    this.cullS.center.set(x, y, z);
+    this.cullS.radius = r + 2.5;
+    return this.frustum.intersectsSphere(this.cullS);
+  }
   private staticTimer = 0;
   private lastResCount = -1;
   // selección
@@ -343,13 +356,25 @@ export class GameRenderer {
 
   // ─────────────────────────── Modelos ───────────────────────────
 
-  private model(key: string, make: () => ModelDef): ModelDef {
+  private model(key: string, make: () => ModelDef, lod = 0): ModelDef {
     let m = this.modelCache.get(key);
     if (!m) {
-      m = make();
+      const prev = MB.lod;
+      MB.lod = lod;
+      try {
+        m = make();
+      } finally {
+        MB.lod = prev;
+      }
       this.modelCache.set(key, m);
     }
     return m;
+  }
+
+  /** Nivel de detalle de los modelos: reducido con la cámara lejos o en calidad baja/media */
+  private lod = 0;
+  private get staticLod() {
+    return this.settings.quality === 'low' || this.settings.quality === 'medium' ? 1 : 0;
   }
 
   private batch(key: string, make: () => ModelDef, holo = false): DrawBatch {
@@ -364,12 +389,13 @@ export class GameRenderer {
   /** Lote de una unidad: modelo propio del jugador (assets/) si existe, si no el generado */
   private unitBatch(defId: string, owner: number): DrawBatch {
     const p = this.w.players[owner];
-    const key = 'u:' + p.civ.style + ':' + defId;
-    let b = this.batches.get(key);
-    if (b) return b;
-    const def = this.model(key, () => buildUnitModel(defId, p.civ.style, p.civ.saber));
     const ud = UNITS[defId];
     const ext = findExtModel(p.civ.id, defId, ud.cls === 'hero');
+    const lod = ext ? 0 : this.lod;
+    const key = 'u:' + p.civ.style + ':' + defId + (lod ? ':lo' : '');
+    let b = this.batches.get(key);
+    if (b) return b;
+    const def = this.model(key, () => buildUnitModel(defId, p.civ.style, p.civ.saber), lod);
     if (ext) {
       if (ext.skinned) {
         const melee = ud.attack?.type === 'melee' || !!ud.saberColor;
@@ -386,11 +412,12 @@ export class GameRenderer {
   /** Lote de un edificio (modelo propio o generado) */
   private buildingBatch(defId: string, owner: number): DrawBatch {
     const p = this.w.players[owner];
-    const key = 'b:' + p.civ.style + ':' + defId;
+    const ext = findExtModel(p.civ.id, defId, false);
+    const lod = ext ? 0 : this.lod;
+    const key = 'b:' + p.civ.style + ':' + defId + (lod ? ':lo' : '');
     let b = this.batches.get(key);
     if (b) return b;
-    const def = this.model(key, () => buildBuildingModel(defId, p.civ.style));
-    const ext = findExtModel(p.civ.id, defId, false);
+    const def = this.model(key, () => buildBuildingModel(defId, p.civ.style), lod);
     if (ext && !ext.skinned) b = new ExtStaticBatch(ext, this.unitGroup, def.height, def.radius, false, this.settings.shadows);
     else b = new ModelBatch(def, this.unitGroup, this.material, { shadows: this.settings.shadows, holo: this.holoMat });
     this.batches.set(key, b);
@@ -400,7 +427,7 @@ export class GameRenderer {
   private staticBatch(key: string, make: () => ModelDef, veg: boolean): ModelBatch {
     let b = this.staticBatches.get(key);
     if (!b) {
-      b = new ModelBatch(this.model(key, make), this.staticGroup, veg ? this.vegMaterial : this.material, { shadows: this.settings.shadows, isStatic: true });
+      b = new ModelBatch(this.model('s:' + key, make, key.endsWith(':lo') ? 1 : 0), this.staticGroup, veg ? this.vegMaterial : this.material, { shadows: this.settings.shadows, isStatic: true });
       this.staticBatches.set(key, b);
     }
     return b;
@@ -446,6 +473,9 @@ export class GameRenderer {
     const w = this.w;
     const gt = w.time + alpha * TICK; // tiempo de juego interpolado
     this.updateCamera();
+    this.camera.updateMatrixWorld();
+    this.frustumM.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+    this.frustum.setFromProjectionMatrix(this.frustumM);
     this.terrain.updateFog(this.viewer, realDt, this.revealAll);
     this.cover.update();
 
@@ -454,6 +484,10 @@ export class GameRenderer {
     const viewR = this.camDist * 1.25 + 8;
 
     // ── Edificios y unidades ──
+    // con histéresis para no alternar modelos al hacer zoom alrededor del umbral
+    if (this.staticLod) this.lod = 1;
+    else if (this.lod === 0 && this.camDist > 23) this.lod = 1;
+    else if (this.lod === 1 && this.camDist < 20) this.lod = 0;
     for (const b of this.batches.values()) b.begin();
     this.ringCount = 0;
     this.effects.beginShields();
@@ -468,9 +502,10 @@ export class GameRenderer {
       if (!own && vis < 2 && !this.seenBuildings.has(e.id)) continue;
       if (vis === 0) continue;
       const p = w.players[e.owner];
+      const h = this.buildingHeight(e);
+      if (!this.inView(e.x, h + e.size * 0.5, e.y, e.size * 0.9 + 1)) continue;
       const bt = this.buildingBatch(e.defId, e.owner);
       void p;
-      const h = this.buildingHeight(e);
       tmpM.makeTranslation(e.x, h, e.y);
       const flash = Math.max(0, 1 - (gt - e.lastHitTime) * 5) * 0.25 + (this.hovered === e.id ? 0.12 : 0);
       bt.push(tmpM, this.teamColor(e.owner), null, vis === 2 ? 1 : 0.55, flash, e.built ? 1 : Math.max(0.02, e.progress), this.buildingAnim(e, gt));
@@ -526,7 +561,8 @@ export class GameRenderer {
     // ── Estáticos (árboles, recursos, decoración) ──
     this.staticTimer -= realDt;
     const alive = w.resources.length;
-    if (this.staticDirty || this.staticTimer <= 0 || alive !== this.lastResCount) {
+    const camMoved = this.lod !== this.staticLodBuilt || Math.abs(this.camTarget.x - this.staticCamX) > 5 || Math.abs(this.camTarget.z - this.staticCamZ) > 5 || Math.abs(this.camDist - this.staticCamD) > this.staticCamD * 0.15;
+    if (this.staticDirty || this.staticTimer <= 0 || alive !== this.lastResCount || camMoved) {
       this.rebuildStatic();
       this.staticTimer = 0.7;
       this.lastResCount = alive;
@@ -632,9 +668,10 @@ export class GameRenderer {
     const w = this.w;
     const p = w.players[e.owner];
     const ud = e.ud!;
+    let z = w.map.surfaceAt(x, y);
+    if (!this.inView(x, z + (e.isAir ? e.flyZ : 0) + 0.6, y, 1.2 + e.radius * 2)) return;
     const bt = this.unitBatch(e.defId, e.owner);
     const skinned = bt instanceof ExtSkinnedBatch;
-    let z = w.map.surfaceAt(x, y);
     if (!e.isAir && w.map.liquid !== 'none' && w.map.liquid !== 'ice' && w.map.heightAt(x, y) < w.map.waterLevel) z = w.map.waterLevel - 0.22;
     let ang = e.pangle + angleDiff(e.pangle, e.angle) * alpha;
     let roll = 0, pitch = 0;
@@ -725,10 +762,26 @@ export class GameRenderer {
   private rebuildStatic() {
     const w = this.w;
     const pl = w.planet;
+    this.staticCamX = this.camTarget.x;
+    this.staticCamZ = this.camTarget.z;
+    this.staticCamD = this.camDist;
+    this.staticLodBuilt = this.lod;
+    // solo lo que está cerca de la vista (la reconstrucción se repite al mover la cámara)
+    const R = this.camDist * 1.7 + 14;
+    const scx = this.camTarget.x, scz = this.camTarget.z;
+    const lodS = this.lod ? ':lo' : '';
+    // margen amplio: la vista se reconstruye cada 0.7 s o al mover la cámara 5 casillas
+    const margin = 6 + this.camDist * 0.1;
+    const inV = (x: number, z: number, r: number) => {
+      this.cullS.center.set(x, w.map.heightAt(Math.max(0, Math.min(w.N - 0.01, x)), Math.max(0, Math.min(w.N - 0.01, z))) + 1.5, z);
+      this.cullS.radius = r + margin;
+      return this.frustum.intersectsSphere(this.cullS);
+    };
     for (const b of this.staticBatches.values()) b.begin();
     const N = w.N;
     for (const r of w.resources) {
       if (!r.alive) continue;
+      if (Math.abs(r.x - scx) > R || Math.abs(r.y - scz) > R || !inV(r.x, r.y, 3)) continue;
       const vis = this.visibleTile(r.x, r.y);
       if (vis === 0) continue;
       let key: string;
@@ -736,11 +789,11 @@ export class GameRenderer {
       if (r.resKind === 'tree') {
         const kind = r.variant === 1 && pl.forest.tree2 ? pl.forest.tree2 : pl.forest.tree;
         const v = (r.id * 7) % 4;
-        key = 't:' + kind + ':' + v;
+        key = 't:' + kind + ':' + v + lodS;
         bt = this.staticBatch(key, () => buildTree(kind, v, pl.forest.color, pl.forest.color2), true);
       } else {
         const v = r.resKind === 'carcass' ? 0 : r.id % 3;
-        key = 'r:' + r.resKind + ':' + v;
+        key = 'r:' + r.resKind + ':' + v + lodS;
         bt = this.staticBatch(key, () => buildResource(r.resKind!, v, pl.biome), false);
       }
       const h = w.map.heightAt(r.x, r.y);
@@ -750,15 +803,16 @@ export class GameRenderer {
       bt.push(tmpM, tmpC.setHex(0xffffff), null, vis === 2 ? 1 : 0.6, this.selected.has(r.id) || this.hovered === r.id ? 0.15 : 0, 1, null);
     }
     for (const d of w.decor) {
+      if (Math.abs(d.x - scx) > R + d.size || Math.abs(d.y - scz) > R + d.size || !inV(d.x, d.y, 2 + d.size)) continue;
       const vis = this.visibleTile(d.x, d.y);
       if (vis === 0) continue;
       let key: string;
       let bt: ModelBatch;
       if (d.block) {
-        key = 'l:' + d.kind + ':' + d.size;
+        key = 'l:' + d.kind + ':' + d.size + lodS;
         bt = this.staticBatch(key, () => buildLandmark(d.kind, d.size, pl.terrain.cliff), false);
       } else {
-        key = 'd:' + d.kind;
+        key = 'd:' + d.kind + lodS;
         bt = this.staticBatch(key, () => buildDecor(d.kind, pl.terrain.cliff), true);
       }
       const h = w.map.heightAt(d.x, d.y);

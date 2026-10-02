@@ -36,7 +36,7 @@ function displace(g: THREE.BufferGeometry, amp: number, freq: number, seed: numb
 }
 /** Esfera abultada (copas de árbol, arbustos) */
 function lumpy(b: MB, r: number, x: number, y: number, z: number, color: number, seed: number, o: { sy?: number; amp?: number; seg?: number; mat?: number } = {}) {
-  const seg = o.seg ?? 10;
+  const seg = MB.lod ? 7 : o.seg ?? 9;
   const g = displace(new THREE.SphereGeometry(1, seg, Math.max(5, Math.round(seg * 0.65))), o.amp ?? 0.22, 1.6, seed);
   g.scale(r, r * (o.sy ?? 1), r);
   return b.mesh(g, x, y, z, color, { flat: false, mat: o.mat ?? SURF.leaves });
@@ -59,15 +59,15 @@ function crown(b: MB, x: number, y: number, z: number, r: number, c1: number, c2
 }
 /** Tronco con raíces ensanchadas */
 function trunkL(b: MB, h: number, r0: number, r1: number, color: number, lean = 0) {
-  b.limb([0, -0.05, 0], [lean, h, 0], r0, r1, color, { mat: SURF.bark, seg: 9 });
-  for (let i = 0; i < 4; i++) {
-    const a = i * 1.57 + 0.4;
-    b.limb([Math.cos(a) * r0 * 0.4, r0 * 1.4, Math.sin(a) * r0 * 0.4], [Math.cos(a) * r0 * 1.9, -0.02, Math.sin(a) * r0 * 1.9], r0 * 0.38, r0 * 0.18, color, { mat: SURF.bark, seg: 6 });
+  b.limb([0, -0.05, 0], [lean, h, 0], r0, r1, color, { mat: SURF.bark, seg: 8 });
+  for (let i = 0; i < 3; i++) {
+    const a = i * 2.09 + 0.4;
+    b.limb([Math.cos(a) * r0 * 0.4, r0 * 1.4, Math.sin(a) * r0 * 0.4], [Math.cos(a) * r0 * 1.9, -0.02, Math.sin(a) * r0 * 1.9], r0 * 0.38, r0 * 0.18, color, { mat: SURF.bark, seg: 5 });
   }
 }
 /** Capa cónica dentada de conífera */
 function coniferLayer(b: MB, r: number, h: number, x: number, y: number, z: number, color: number, seed: number) {
-  const g = new THREE.ConeGeometry(1, 1, 13, 3);
+  const g = new THREE.ConeGeometry(1, 1, MB.lod ? 10 : 12, 2);
   const p = g.attributes.position as THREE.BufferAttribute;
   const v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) {
