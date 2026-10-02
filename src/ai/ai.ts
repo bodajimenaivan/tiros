@@ -1002,9 +1002,11 @@ export class AIController {
         if (info.defId === 'fortress') defs += 2;
         else if (info.defId === 'turret' || info.defId === 'command_center' || info.defId === 'aa_turret') defs += 1;
       }
+      let forts = 0;
+      for (const [, info] of this.knownEnemyBuildings) if (info.defId === 'fortress') forts++;
       const sumW = Object.values(base).reduce((a, b) => a + (b ?? 0), 0);
       add('pummel', sumW * Math.min(0.2, 0.06 + defs * 0.012));
-      add('artillery', sumW * Math.min(0.12, 0.04 + defs * 0.008));
+      add('artillery', sumW * Math.min(0.24, 0.04 + defs * 0.008 + forts * 0.07));
     }
     return base;
   }
@@ -1108,11 +1110,17 @@ export class AIController {
   threatsNearBase(): Entity[] {
     const w = this.w;
     const out: Entity[] = [];
-    const myB = w.buildings.filter((b) => b.alive && b.owner === this.pid);
+    // solo el núcleo de la base: cerca de un centro de mando o edificios importantes
+    const ccs = w.buildings.filter((b) => b.alive && b.owner === this.pid && b.defId === 'command_center');
+    const anchors = ccs.length ? ccs : [{ x: this.baseX, y: this.baseY } as Entity];
+    const myB = w.buildings.filter((b) => {
+      if (!b.alive || b.owner !== this.pid || b.bd!.wall) return false;
+      for (const a of anchors) if (Math.abs(a.x - b.x) < 22 && Math.abs(a.y - b.y) < 22) return true;
+      return b.defId === 'fortress' || b.defId === 'temple' || b.defId === 'monument';
+    });
     for (const u of w.units) {
       if (!u.alive || !this.p.isEnemy(u.owner) || u.ud!.cls === 'scout' || u.garrisonedIn) continue;
       for (const b of myB) {
-        if (b.bd!.wall) continue;
         if (Math.abs(u.x - b.x) < 12 && Math.abs(u.y - b.y) < 12) {
           out.push(u);
           break;
@@ -1358,12 +1366,13 @@ export class AIController {
     if (army) for (const u of army) {
       const c = u.ud!.cls;
       if (c === 'pummel' || c === 'artillery' || c === 'bomber') siege += 1;
-      else if (c === 'assaultMech' || c === 'grenadier') siege += 0.34;
+      else if (c === 'assaultMech') siege += 0.5;
+      else if (c === 'grenadier') siege += 0.25;
     }
-    const defended: { x: number; y: number; r: number }[] = [];
+    const defended: { x: number; y: number; r: number; w: number }[] = [];
     for (const [, info] of this.knownEnemyBuildings) {
-      if (info.defId === 'turret') defended.push({ x: info.x, y: info.y, r: 10 });
-      else if (info.defId === 'fortress') defended.push({ x: info.x, y: info.y, r: 11 });
+      if (info.defId === 'turret') defended.push({ x: info.x, y: info.y, r: 10, w: 1 });
+      else if (info.defId === 'fortress') defended.push({ x: info.x, y: info.y, r: 11, w: 3 });
     }
     // preferir el enemigo más cercano / el objetivo actual
     let best: { x: number; y: number; pid: number } | null = null;
@@ -1376,12 +1385,11 @@ export class AIController {
       if (b && b.bd!.wall) d += 30;
       if (b && b.defId === 'command_center') d -= 5;
       if (this.attackTarget && info.owner === this.attackTarget.pid) d -= 10;
-      if (siege < 3) {
-        // evitar meterse bajo torretas sin asedio
-        let cover = 0;
-        for (const dp of defended) if (Math.abs(dp.x - info.x) < dp.r && Math.abs(dp.y - info.y) < dp.r && Math.hypot(dp.x - info.x, dp.y - info.y) < dp.r) cover++;
-        d += cover * (siege >= 1 ? 10 : 22);
-      } else if (b && (b.defId === 'turret' || b.defId === 'fortress')) d -= 8;
+      // evitar meterse bajo torretas/fortalezas sin asedio suficiente
+      let cover = 0;
+      for (const dp of defended) if (Math.abs(dp.x - info.x) < dp.r && Math.abs(dp.y - info.y) < dp.r && Math.hypot(dp.x - info.x, dp.y - info.y) < dp.r) cover += dp.w;
+      if (cover > 0 && siege < 2 + cover) d += cover * (siege >= 1 ? 9 : 18);
+      else if (cover > 0 && b && (b.defId === 'turret' || b.defId === 'fortress')) d -= 8;
       if (d < bd) {
         bd = d;
         best = { x: info.x, y: info.y, pid: info.owner };

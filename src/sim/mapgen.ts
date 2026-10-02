@@ -244,6 +244,8 @@ export function generateMap(planet: PlanetDef, N: number, teams: number[], seed:
           reserved[ty * N + tx] = 1;
           const t = map.terrain[ty * N + tx];
           if (t === T_CLIFF || t === T_DEEP || t === T_SHALLOW) map.terrain[ty * N + tx] = T_GROUND;
+          // la base nunca queda bajo el agua/lava
+          if (water && avgTile(map, tx, ty) < level + 0.2) raiseTile(map, tx, ty, level + 0.3);
         }
       }
   }
@@ -465,7 +467,79 @@ export function generateMap(planet: PlanetDef, N: number, teams: number[], seed:
     }
   }
 
+  // ───── Conectividad final contando los recursos (árboles y minas bloquean) ─────
+  for (let iter = 0; iter < 8; iter++) {
+    const resAt = new Uint8Array(N * N);
+    for (const r of resources) resAt[r.y * N + r.x] = 1;
+    const blocked = (i: number) => {
+      const t = map.terrain[i];
+      return t === T_CLIFF || t === T_DEEP || map.occ[i] !== 0 || resAt[i] === 1;
+    };
+    const reach3 = floodWith(N, starts[0].x, starts[0].y, blocked);
+    let cut = false;
+    for (let i = 1; i < P; i++) {
+      if (reach3[starts[i].y * N + starts[i].x]) continue;
+      // camino ignorando recursos; se despeja un corredor de 3 tiles
+      const path = bfsPath(N, starts[0].x, starts[0].y, starts[i].x, starts[i].y, (k) => {
+        const t = map.terrain[k];
+        return t === T_CLIFF || t === T_DEEP || map.occ[k] !== 0;
+      });
+      if (!path) continue;
+      const clear = new Uint8Array(N * N);
+      for (const k of path) {
+        const x = k % N, y = (k / N) | 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (map.inBounds(x + dx, y + dy)) clear[(y + dy) * N + x + dx] = 1;
+      }
+      for (let r = resources.length - 1; r >= 0; r--) if (clear[resources[r].y * N + resources[r].x]) resources.splice(r, 1);
+      cut = true;
+    }
+    if (!cut) break;
+  }
+
   return { map, starts, resources, animals, holocrons, decor };
+}
+
+function floodWith(N: number, sx: number, sy: number, blocked: (i: number) => boolean): Uint8Array {
+  const out = new Uint8Array(N * N);
+  const stack: number[] = [sy * N + sx];
+  out[sy * N + sx] = 1;
+  while (stack.length) {
+    const c = stack.pop()!;
+    const cx = c % N, cy = (c / N) | 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      const ni = ny * N + nx;
+      if (out[ni] || blocked(ni)) continue;
+      out[ni] = 1;
+      stack.push(ni);
+    }
+  }
+  return out;
+}
+
+function bfsPath(N: number, sx: number, sy: number, gx: number, gy: number, blocked: (i: number) => boolean): number[] | null {
+  const prev = new Int32Array(N * N).fill(-1);
+  const start = sy * N + sx, goal = gy * N + gx;
+  prev[start] = start;
+  const q: number[] = [start];
+  for (let h = 0; h < q.length; h++) {
+    const c = q[h];
+    if (c === goal) break;
+    const cx = c % N, cy = (c / N) | 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      const ni = ny * N + nx;
+      if (prev[ni] !== -1 || (blocked(ni) && ni !== goal)) continue;
+      prev[ni] = c;
+      q.push(ni);
+    }
+  }
+  if (prev[goal] === -1) return null;
+  const path: number[] = [];
+  for (let c = goal; c !== start; c = prev[c]) path.push(c);
+  return path;
 }
 
 export function landmarkSize(kind: string): number {

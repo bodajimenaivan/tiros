@@ -286,11 +286,14 @@ diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.82, smoothstep(0.3
             vec2 f1 = uv * 0.06 + vec2(uTime * 0.01, uTime * 0.006);
             vec2 f2 = uv * 0.13 - vec2(uTime * 0.008, -uTime * 0.012);
             float n = texture2D(tNoise, f1).r * 0.6 + texture2D(tNoise, f2).g * 0.4;
-            float crust = smoothstep(0.42, 0.62, n);
-            vec3 hot = vec3(1.0, 0.45, 0.08) * 3.2;
-            vec3 glow = vec3(1.0, 0.85, 0.3) * 4.0;
-            col = mix(mix(hot, glow, smoothstep(0.2, 0.0, n)), vec3(0.08, 0.04, 0.03), crust);
-            col *= 0.85 + 0.15 * sin(uTime * 2.0 + n * 12.0);
+            float crust = smoothstep(0.43, 0.47, n);
+            float rim = smoothstep(0.38, 0.45, n) * (1.0 - crust);
+            vec3 hot = vec3(1.0, 0.2, 0.02) * 1.15;
+            vec3 glow = vec3(1.0, 0.55, 0.08) * 1.7;
+            vec3 rock = vec3(0.06, 0.03, 0.025) + vec3(0.05, 0.015, 0.0) * texture2D(tNoise, uv * 0.4).g;
+            col = mix(mix(hot, glow, smoothstep(0.3, 0.1, n)), rock, crust);
+            col = mix(col, vec3(0.6, 0.12, 0.02), rim * 0.6);
+            col *= 0.9 + 0.1 * sin(uTime * 2.0 + n * 12.0);
             alpha = 1.0;
           } else if (uKind == 2) {
             // hielo

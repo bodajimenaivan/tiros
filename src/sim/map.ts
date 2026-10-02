@@ -88,6 +88,8 @@ export class GameMap {
     const t = this.terrain[i];
     if (t === T_CLIFF || t === T_DEEP || t === T_SHALLOW) return false;
     if (this.occ[i] !== 0) return false;
+    // orillas parcialmente sumergidas
+    if (this.liquid !== 'none' && Math.min(this.vh(tx, ty), this.vh(tx + 1, ty), this.vh(tx, ty + 1), this.vh(tx + 1, ty + 1)) < this.waterLevel - 0.02) return false;
     if (!allowFarm && this.farmOcc[i] !== 0) return false;
     if (allowFarm && this.farmOcc[i] !== 0) return false;
     return true;

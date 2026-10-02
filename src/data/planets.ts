@@ -72,7 +72,7 @@ def({
 def({
   id: 'mustafar', name: 'Mustafar', biome: 'volcanic', music: 'dark',
   desc: 'Mundo volcánico de ríos de lava y cielos de ceniza. Pasos estrechos y puentes naturales: cada cuello de botella cuenta.',
-  sky: { top: 0x2a0e0a, bottom: 0x8a2a10, fog: 0x4a1a10, fogDensity: 0.009, sun: 0xff9050, sunIntensity: 1.8, ambient: 0.35, hemiGround: 0x5a1a0a },
+  sky: { top: 0x2a0e0a, bottom: 0x8a2a10, fog: 0x3a1610, fogDensity: 0.007, sun: 0xffa070, sunIntensity: 1.9, ambient: 0.42, hemiGround: 0x4a1a0a },
   terrain: { base: 0x3a302c, alt: 0x2a2220, high: 0x4a3c34, low: 0x5a2a1a, cliff: 0x1e1816, path: 0x5a4a40 },
   water: { color: 0xff5a10, level: -0.5, kind: 'lava', amount: 0.18, rivers: 2 },
   heightAmp: 3.2, heightScale: 0.04, cliffs: 0.45,

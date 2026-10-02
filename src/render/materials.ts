@@ -64,8 +64,17 @@ float cutH = vInst.z * vInst.w;
 if (vInst.z < 0.999 && vLocalY > cutH + 0.02) discard;`,
       )
       .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+// oclusión ambiental falsa: la base de los modelos queda más oscura (contacto con el suelo)
+diffuseColor.rgb *= mix(0.6, 1.0, smoothstep(0.0, 0.55, vLocalY));`,
+      )
+      .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
+// luz de borde para separar los modelos del terreno
+float rimK = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
+totalEmissiveRadiance += vec3(0.55, 0.65, 0.8) * rimK * 0.22 * vInst.x;
 totalEmissiveRadiance += vColor.rgb * vEmissive * 2.2;
 totalEmissiveRadiance += vec3(1.0) * vInst.y * 0.55;
 if (vInst.z < 0.999) {
@@ -79,7 +88,7 @@ if (vInst.z < 0.999) {
 gl_FragColor.rgb *= vInst.x;`,
       );
   };
-  mat.customProgramCacheKey = () => 'swModel1';
+  mat.customProgramCacheKey = () => 'swModel2';
   return mat;
 }
 
@@ -114,8 +123,9 @@ export function createHologramMaterial(): THREE.ShaderMaterial {
         if (vLocalY < cutH) discard;
         float fres = pow(1.0 - abs(dot(normalize(vN), vView)), 2.0);
         float scan = 0.5 + 0.5 * sin(vLocalY * 40.0 - uTime * 6.0);
-        float a = 0.1 + fres * 0.32 + scan * 0.05;
-        gl_FragColor = vec4(uColor * (0.55 + fres * 0.6), a);
+        float a = 0.07 + fres * 0.22 + scan * 0.04;
+        float line = smoothstep(0.92, 1.0, scan);
+        gl_FragColor = vec4(uColor * (0.32 + fres * 0.4 + line * 0.25), a);
       }`,
     transparent: true,
     depthWrite: false,
