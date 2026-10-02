@@ -9,26 +9,33 @@ Todo el contenido visual (modelos, terreno, efectos) y sonoro (música, efectos,
 - Node.js 18 o superior (recomendado 20+)
 - Un navegador moderno con WebGL2 (Chrome, Edge o Firefox) y una tarjeta gráfica dedicada para la calidad "Alta/Ultra"
 
-## Cómo jugar en local
+## Cómo abrir el juego (la forma fácil)
+
+No necesitas instalar nada:
+
+1. Descarga el archivo **`Jugar.html`** de este repositorio. En GitHub, ábrelo y pulsa el botón de descarga (*Download raw file*). También puedes descargar el repositorio entero con **Code → Download ZIP** y descomprimirlo.
+2. Haz doble clic en `Jugar.html`. Se abrirá en tu navegador, de preferencia **Chrome** o **Edge**.
+3. Pulsa **Acción Instantánea** para empezar una partida rápida.
+
+Todo el juego (gráficos, sonido, música y datos) está dentro de ese único archivo y funciona sin internet.
+
+## Cómo ejecutarlo desde el código (para desarrollo)
+
+Hace falta instalar [Node.js](https://nodejs.org) (versión 18 o superior). Después, desde una terminal abierta en la carpeta del proyecto:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre la dirección que muestra la consola (por defecto `http://localhost:5173`).
-
-Versión optimizada (más rápida):
-
-```bash
-npm run build
-npx vite preview
-```
+Abre la dirección que muestra la consola (por defecto `http://localhost:5173`). Este modo es necesario si quieres usar tus propios archivos de música.
 
 Otros comandos útiles:
 
 | Comando | Qué hace |
 |---|---|
+| `npm run build:single` | Vuelve a generar `Jugar.html` después de cambiar el código |
+| `npm run build` | Versión optimizada en `dist/` (se sirve con `npx vite preview`) |
 | `npm run typecheck` | Comprueba los tipos de TypeScript |
 | `npm run sim -- empire rebels tatooine 40 hard` | Partida IA contra IA sin gráficos (para comprobar el equilibrio) |
 | `npx tsx tests/tournament.ts` | Torneo de todas las civilizaciones entre sí (IA difícil) |
@@ -119,7 +126,7 @@ Para avanzar de era hacen falta recursos y dos edificios distintos de la era act
 
 La música se genera por código: hay temas para el menú, la galaxia, cada tipo de planeta, la victoria y la derrota, y la intensidad sube durante los combates.
 
-Si quieres usar tus propios archivos de música, cópialos en `public/music/` con estos nombres (`.mp3` u `.ogg`):
+Si quieres usar tus propios archivos de música, ejecuta el juego con `npm run dev` (no funciona al abrir `Jugar.html` con doble clic) y cópialos en `public/music/` con estos nombres (`.mp3` u `.ogg`):
 
 `menu`, `galaxy`, `heroic`, `dark`, `mystic`, `war`, `victory`, `defeat`
 

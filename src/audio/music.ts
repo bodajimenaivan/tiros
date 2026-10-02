@@ -137,7 +137,9 @@ export class MusicEngine {
       });
       a.load();
     };
-    tryFile(['mp3', 'ogg']);
+    // Abierto con doble clic (file://): el navegador no deja mezclar archivos locales; música generada.
+    if (location.protocol === 'file:') this.startProcedural(theme);
+    else tryFile(['mp3', 'ogg']);
   }
 
   private startProcedural(theme: Theme) {

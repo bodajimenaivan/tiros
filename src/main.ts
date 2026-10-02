@@ -1,9 +1,9 @@
 // Punto de entrada: navegación entre pantallas.
-import '@fontsource/orbitron/400.css';
-import '@fontsource/orbitron/700.css';
-import '@fontsource/orbitron/900.css';
-import '@fontsource/exo-2/400.css';
-import '@fontsource/exo-2/600.css';
+import '@fontsource/orbitron/latin-400.css';
+import '@fontsource/orbitron/latin-700.css';
+import '@fontsource/orbitron/latin-900.css';
+import '@fontsource/exo-2/latin-400.css';
+import '@fontsource/exo-2/latin-600.css';
 import './ui/styles.css';
 import { MainMenu, SkirmishScreen, showCrawl, instantSetup, optionsScreen, creditsScreen } from './ui/screens';
 import { encyclopedia } from './ui/encyclopedia';

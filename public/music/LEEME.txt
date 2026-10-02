@@ -11,3 +11,6 @@ Nombres admitidos (.mp3 u .ogg):
   defeat    Pantalla de derrota
 
 Ejemplo: heroic.mp3
+
+Solo funciona al ejecutar el juego con "npm run dev". Al abrir Jugar.html con doble clic
+se usa siempre la música generada por el juego.
