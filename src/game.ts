@@ -20,6 +20,10 @@ export interface SessionResult {
 }
 
 const TIPS = [
+  'Los Cargueros Comerciales ganan más Nova cuanto más lejos esté el puerto espacial de destino; con un aliado, aún más.',
+  'Cuando se agoten los cristales de Nova, vende comida de tus granjas en el Puerto Espacial: los precios se recuperan con el tiempo.',
+  'Guarnece trabajadores en el Centro de Mando para que dispare más proyectiles contra los atacantes.',
+  'Las torretas y fortalezas apenas sufren con los blásteres: usa arietes o artillería para derribarlas.',
   'Los Jedi y Sith desvían los disparos de bláster, pero son vulnerables a granadas y artillería.',
   'Los Destructores de Mechs destrozan andadores y tropas montadas, pero caen rápido ante los soldados.',
   'Construye Núcleos de Energía: los edificios militares sin energía producen a la mitad de velocidad.',
