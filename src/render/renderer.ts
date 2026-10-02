@@ -686,7 +686,7 @@ export class GameRenderer {
         bt = this.staticBatch(key, () => buildResource(r.resKind!, v, pl.biome), false);
       }
       const h = w.map.heightAt(r.x, r.y);
-      const sc = r.resKind === 'tree' ? 0.85 + ((r.id * 13) % 10) / 30 : r.resKind === 'nova' || r.resKind === 'ore' ? 0.6 + 0.4 * Math.min(1, r.amount / 450) + 0.15 : 1;
+      const sc = r.resKind === 'tree' ? 0.85 + ((r.id * 13) % 10) / 30 : r.resKind === 'nova' || r.resKind === 'ore' ? 0.6 + 0.4 * Math.min(1, r.amount / (r.resKind === 'nova' ? 700 : 400)) + 0.15 : 1;
       tmpQ.setFromAxisAngle(UP, r.angle);
       tmpM.compose(tmpV.set(r.x, h - 0.02, r.y), tmpQ, tmpS.set(sc, sc, sc));
       bt.push(tmpM, tmpC.setHex(0xffffff), null, vis === 2 ? 1 : 0.6, this.selected.has(r.id) || this.hovered === r.id ? 0.15 : 0, 1, null);

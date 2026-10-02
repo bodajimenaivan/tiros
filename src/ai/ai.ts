@@ -413,7 +413,9 @@ export class AIController {
     }
     if (this.thinkCount % 2 === 0) this.manageFarms(want.food);
     // entrenar trabajadores
-    const target = Math.min(this.d.workers, this.p.popMax * 0.45);
+    // la economía tardía necesita más trabajadores (granjas + comercio), como en AoE2
+    const lateMul = this.p.era >= 3 && this.p.difficulty !== 'easy' ? 1.25 : 1;
+    const target = Math.min(Math.round(this.d.workers * lateMul), this.p.popMax * 0.5);
     const ccs = buildings.filter((b) => b.defId === 'command_center' && b.built);
     const queued = ccs.reduce((a, b) => a + b.prodQueue.filter((q) => q.id === 'worker').length, 0);
     const eraT = TECHS['era_' + (this.p.era + 1)];

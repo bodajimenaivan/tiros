@@ -22,6 +22,7 @@ export const TICK = 1 / 20;
 export const HOLOCRON_RATE = 0.45; // nova/s por holocrón
 
 const BASE_ERA_CACHE = new Map<string, number>();
+const MARKET_BASE = { food: 100, carbon: 100, ore: 130 };
 
 export class World {
   setup: GameSetup;
@@ -50,7 +51,7 @@ export class World {
   gameOver = false;
   winnerTeam = -1;
   winners: number[] = [];
-  market: Record<'food' | 'carbon' | 'ore', number> = { food: 100, carbon: 100, ore: 130 };
+  market: Record<'food' | 'carbon' | 'ore', number> = { ...MARKET_BASE };
   holocronHold = { team: -1, since: 0 };
   monumentHolder = 0;
   powerDirty = true;
@@ -582,6 +583,15 @@ export class World {
     this.processPathQueue();
 
     if (this.powerDirty || this.tickN % 40 === 0) this.updatePower();
+    // los precios del mercado vuelven poco a poco a su valor base
+    if (this.tickN % 100 === 0) {
+      for (const r of ['food', 'carbon', 'ore'] as const) {
+        const base = MARKET_BASE[r];
+        const m = this.market[r];
+        if (m < base) this.market[r] = Math.min(base, m + 3);
+        else if (m > base) this.market[r] = Math.max(base, m - 3);
+      }
+    }
 
     // unidades
     for (let i = 0; i < this.units.length; i++) {

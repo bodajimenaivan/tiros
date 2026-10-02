@@ -30,7 +30,7 @@ export interface MapGenResult {
   decor: Decor[];
 }
 
-export const RES_AMOUNT = { tree: 125, bush: 125, nova: 550, ore: 400, carcass: 0 };
+export const RES_AMOUNT = { tree: 125, bush: 125, nova: 700, ore: 400, carcass: 0 };
 
 export function generateMap(planet: PlanetDef, N: number, teams: number[], seed: number): MapGenResult {
   const rng = new RNG(seed);
