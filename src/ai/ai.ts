@@ -1137,6 +1137,12 @@ export class AIController {
     const total = military.length + 1;
     const reserve: Record<ResourceType, number> = { food: 0, carbon: 0, nova: 0, ore: 0 };
     if (p.era >= 3 && !this.hasBuilding('fortress')) reserve.ore = 650;
+    // ahorrando para la siguiente era: solo se gasta el excedente (la mitad si nos atacan)
+    if (this.savingForEra) {
+      const et = TECHS['era_' + (p.era + 1)];
+      const k = this.underAttack() ? 0.5 : 1;
+      if (et) for (const r of RESOURCE_TYPES) reserve[r] = Math.max(reserve[r], (et.cost[r] ?? 0) * k);
+    }
     if (this.time - this.needDropsite < 30) reserve.carbon = 110;
     // reservar para granjas cuando la comida escasea
     if (p.res.food < 150) reserve.carbon = Math.max(reserve.carbon, 120);
@@ -1591,6 +1597,9 @@ export class AIController {
       const novaNeed = p.era >= 3 ? 450 : 250;
       if (p.res.nova < novaNeed) limit = Math.min(limit, r === 'ore' ? 450 : 550);
       limit = Math.max(450, limit);
+      // no vender lo que se está ahorrando para la siguiente era
+      const et = this.savingForEra ? TECHS['era_' + (p.era + 1)] : null;
+      if (et && r !== 'ore') limit = Math.max(limit, (et.cost[r] ?? 0) + 250);
       for (let k = 0; k < 4 && p.res[r] > limit + 100; k++) if (!w.marketSell(this.pid, r)) break;
     }
     // comprar lo escaso con Nova, conservando una reserva
