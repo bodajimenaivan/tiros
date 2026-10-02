@@ -178,7 +178,7 @@ def({
     { text: 'Infantería +1 de armadura cuerpo a cuerpo.', mods: [{ target: { tags: ['infantry'] }, stat: 'armorMelee', add: 1 }] },
     { text: 'Antiaéreos +25% PV y +2 de alcance.', mods: [{ target: { cls: ['aaTrooper', 'aaMobile'] }, stat: 'hp', mul: 1.25 }, { target: { cls: ['aaTrooper', 'aaMobile'] }, stat: 'range', add: 2 }, { target: { buildings: ['aa_turret'] }, stat: 'range', add: 2 }] },
   ],
-  teamBonus: { text: 'Equipo: Granjas +10% de alimento.', mods: [{ target: { player: true }, stat: 'gatherFarm', mul: 1.1 }] },
+  teamBonus: { text: 'Equipo: Granjas +12% de alimento.', mods: [{ target: { player: true }, stat: 'gatherFarm', mul: 1.12 }] },
   uniqueUnit: 'fambaa', eliteUnique: 'elite_fambaa', uniqueTechs: ['gun_shields', 'gun_boomas'],
   heroes: ['boss_nass', 'jarjar', 'tarpals'], disabled: ['airbase', 'fighter', 'adv_fighter', 'bomber', 'heavy_bomber', 'up_adv_fighter', 'up_heavy_bomber', 'afterburners', 'deflector_shields'],
   names: {
