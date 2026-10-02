@@ -23,7 +23,7 @@ def({
   id: 'empire', name: 'Imperio Galáctico', short: 'Imperio', side: 'dark', style: 'imperial', emblem: 'empire', homeworld: 'coruscant',
   desc: 'El poder del Lado Oscuro. Andadores devastadores, disciplina férrea y defensas formidables.',
   bonuses: [
-    { text: 'Mechs de asalto +20% PV.', mods: [{ target: { cls: ['assaultMech'] }, stat: 'hp', mul: 1.2 }] },
+    { text: 'Mechs de asalto +20% PV; mechs de ataque y de asalto un 10% más baratos.', mods: [{ target: { cls: ['assaultMech'] }, stat: 'hp', mul: 1.2 }, { target: { cls: ['strikeMech', 'assaultMech'] }, stat: 'cost', mul: 0.9 }] },
     { text: 'Torretas +1 de alcance y se construyen un 30% más rápido.', mods: [{ target: { buildings: ['turret', 'aa_turret'] }, stat: 'range', add: 1 }, { target: { buildings: ['turret', 'aa_turret'] }, stat: 'buildTime', mul: 0.7 }] },
     { text: 'Soldados +15% PV.', mods: [{ target: { cls: ['trooper'] }, stat: 'hp', mul: 1.15 }] },
     { text: 'Logística imperial: los trabajadores llevan +3 de carga y los núcleos de energía tienen +2 de radio.', mods: [{ target: { cls: ['worker'] }, stat: 'carry', add: 3 }, { target: { buildings: ['power_core'] }, stat: 'powerRadius', add: 2 }] },
@@ -73,7 +73,7 @@ def({
   id: 'republic', name: 'República Galáctica', short: 'República', side: 'light', style: 'republic', emblem: 'republic', homeworld: 'coruscant',
   desc: 'El Gran Ejército de la República: legiones de clones dirigidos por generales Jedi.',
   bonuses: [
-    { text: 'Soldados cuestan un 15% menos de alimento.', mods: [{ target: { cls: ['trooper'] }, stat: 'costFood', mul: 0.85 }] },
+    { text: 'Soldados cuestan un 20% menos de alimento.', mods: [{ target: { cls: ['trooper'] }, stat: 'costFood', mul: 0.8 }] },
     { text: 'Caballeros y Maestros Jedi un 15% más baratos.', mods: [{ target: { cls: ['jediKnight', 'jediMaster'] }, stat: 'cost', mul: 0.85 }] },
     { text: 'Templos y fortalezas se construyen un 25% más rápido.', mods: [{ target: { buildings: ['temple', 'fortress'] }, stat: 'buildTime', mul: 0.75 }] },
     { text: 'Infantería +1 de armadura a distancia.', mods: [{ target: { cls: ['trooper', 'grenadier', 'aaTrooper'] }, stat: 'armorRanged', add: 1 }] },
@@ -125,7 +125,7 @@ def({
   bonuses: [
     { text: 'Trabajadores un 15% más baratos.', mods: [{ target: { cls: ['worker'] }, stat: 'cost', mul: 0.85 }] },
     { text: 'Mechs de asalto +1/+1 de armadura.', mods: [{ target: { cls: ['assaultMech'] }, stat: 'armorMelee', add: 1 }, { target: { cls: ['assaultMech'] }, stat: 'armorRanged', add: 1 }] },
-    { text: 'Recolección de mineral y Nova +10%.', mods: [{ target: { player: true }, stat: 'gatherOre', mul: 1.1 }, { target: { player: true }, stat: 'gatherNova', mul: 1.1 }] },
+    { text: 'Recolección de mineral +15% y de Nova +5%.', mods: [{ target: { player: true }, stat: 'gatherOre', mul: 1.15 }, { target: { player: true }, stat: 'gatherNova', mul: 1.05 }] },
     { text: 'Comisión de comercio reducida a la mitad.', mods: [{ target: { player: true }, stat: 'tradeFee', mul: 0.5 }] },
   ],
   teamBonus: { text: 'Equipo: Puertos espaciales dan +5% de recolección de Nova.', mods: [{ target: { player: true }, stat: 'gatherNova', mul: 1.05 }] },
