@@ -44,6 +44,10 @@ export function encyclopedia(parent: HTMLElement, onBack: () => void) {
         <p>Avanza por las cuatro eras desde el Centro de Mando: <b>Fronteriza → Expansión → Guerras → Galáctica</b>. Cada avance necesita recursos y dos edificios distintos de la era actual.</p>
         <h3>Energía y escudos</h3>
         <p>Los edificios militares necesitan estar dentro del radio de un <b>Núcleo de Energía</b>; sin energía producen a la mitad de velocidad. Los <b>Generadores de Escudos</b> reducen el daño de todo lo que protegen.</p>
+        <h3>Mercado y comercio</h3>
+        <p>En el <b>Puerto Espacial</b> compras y vendes recursos a cambio de Nova; los precios suben al comprar, bajan al vender y se recuperan con el tiempo. Los <b>Cargueros Comerciales</b> viajan entre dos puertos (tuyos o aliados) y ganan Nova en cada viaje: cuanto más lejos, más ganancia. Cuando los cristales se agoten, las granjas y el comercio sostendrán tu economía.</p>
+        <h3>Defensa</h3>
+        <p>Mete unidades en el <b>Centro de Mando</b>, la <b>Fortaleza</b> o las <b>torretas</b> para que disparen más y se curen. La <b>campana de alarma</b> refugia a tus trabajadores. Las defensas resisten muy bien los blásteres: derríbalas con arietes, artillería, mechs de asalto, granaderos o bombarderos.</p>
         <h3>Contrarrestar</h3>
         <ul>
           <li>Soldados → vencen a armas pesadas y destructores de mechs.</li>
