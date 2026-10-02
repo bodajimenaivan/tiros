@@ -2,6 +2,8 @@
 import { MB, C } from './builder';
 import { humanoid, type HumOpts } from './humanoids';
 import { SURF } from '../surface';
+import * as THREE from 'three';
+import { displace } from './organic';
 
 const IMP = 0xb8bcc4; // gris imperial
 const IMPD = 0x6a6e76;
@@ -334,80 +336,109 @@ export interface BeastOpts {
 export function beast(b: MB, o: BeastOpts) {
   const { len: L, hgt: H, wid: W } = o;
   const by = H * 0.62;
+  const prevMat = b.defMat;
+  const scaly = ['kaadu', 'dewback', 'varactyl', 'fambaa', 'falumpaset', 'nexu', 'acklay'].includes(o.head ?? '');
+  const skin = scaly ? SURF.skin : SURF.fur;
+  b.surf(skin);
   b.part('body', 'static');
-  b.sphere(W * 0.5, 0, by, 0, o.body, { sx: L / W, sy: (H * 0.45) / (W * 0.5), seg: 10 });
-  if (o.belly) b.sphere(W * 0.42, 0, by - H * 0.1, 0, o.belly, { sx: (L / W) * 0.85, sy: 0.6, seg: 8 });
+  // cuerpo: elipsoide con bultos suaves (lomo, costillas)
+  const bodyG = displace(new THREE.SphereGeometry(1, 16, 11), scaly ? 0.05 : 0.09, 2.2, Math.round(L * 100 + H * 37));
+  bodyG.scale(L * 0.5, H * 0.45, W * 0.5);
+  b.mesh(bodyG, 0, by, 0, o.body, { flat: false, mat: skin });
+  if (o.belly) b.ell(L * 0.4, H * 0.27, W * 0.4, 0, by - H * 0.12, 0, o.belly, { mat: skin });
   // cuello y cabeza
   const hx = L * 0.55, hy = by + H * (o.legs === 2 ? 0.45 : 0.15);
   b.part('head', 'head', [L * 0.4, by + H * 0.1, 0], 'body');
   const neck = o.neck ?? o.body;
-  b.cyl(W * 0.16, W * 0.22, H * 0.4, L * 0.45, (by + hy) / 2, 0, neck, { rz: o.legs === 2 ? -0.3 : -1.0 });
+  b.limb([L * 0.32, by + H * 0.05, 0], [hx - W * 0.1, hy - W * 0.05, 0], W * 0.24, W * 0.17, neck, { mat: skin, seg: 9 });
+  let headR = W * 0.26;
   switch (o.head ?? 'nerf') {
     case 'kaadu':
-      b.sphere(W * 0.22, hx, hy, 0, o.body, { sx: 1.8 });
-      b.cone(W * 0.12, W * 0.3, hx + W * 0.45, hy - 0.02, 0, 0xd0a060, { rz: -Math.PI / 2 });
+      b.ell(W * 0.4, W * 0.2, W * 0.2, hx, hy, 0, o.body, { mat: skin });
+      b.ell(W * 0.22, W * 0.07, W * 0.12, hx + W * 0.42, hy - 0.03, 0, 0xd0a060, { mat: SURF.leather }); // pico
+      headR = W * 0.2;
       break;
     case 'tauntaun':
-      b.sphere(W * 0.24, hx, hy, 0, o.body, { sx: 1.5 });
-      b.sym((s) => b.cone(0.05, 0.22, hx - 0.05, hy + 0.1, s * W * 0.18, 0xb0a080, { rx: s * 1.2, rz: 0.6 }));
+      b.ell(W * 0.36, W * 0.24, W * 0.22, hx, hy, 0, o.body, { mat: skin });
+      b.sym((sd) => b.limb([hx - 0.04, hy + 0.06, sd * W * 0.16], [hx - 0.16, hy + 0.2, sd * W * 0.3], 0.035, 0.012, 0xb0a080, { mat: SURF.bark, seg: 6 }));
+      headR = W * 0.22;
       break;
     case 'bantha':
-      b.sphere(W * 0.3, hx, hy, 0, o.body);
-      b.sym((s) => b.torus(W * 0.18, W * 0.05, hx - 0.05, hy + 0.08, s * W * 0.3, 0xd8c8a0, { rx: Math.PI / 2 }));
+      b.ell(W * 0.34, W * 0.32, W * 0.3, hx, hy, 0, o.body, { mat: skin });
+      // cuernos en espiral
+      b.sym((sd) => {
+        b.torus(W * 0.16, W * 0.05, hx - 0.06, hy + 0.06, sd * W * 0.32, 0xd8c8a0, { rx: Math.PI / 2, mat: SURF.bark, seg: 14 });
+        b.limb([hx + 0.02, hy - 0.04, sd * W * 0.32], [hx + 0.12, hy - 0.14, sd * W * 0.36], W * 0.045, W * 0.015, 0xd8c8a0, { mat: SURF.bark, seg: 6 });
+      });
+      headR = W * 0.3;
       break;
     case 'dewback':
     case 'varactyl':
-      b.sphere(W * 0.24, hx, hy, 0, o.body, { sx: 1.7, sy: 0.8 });
-      if (o.head === 'varactyl') b.sym((s) => b.cone(0.04, 0.2, hx - 0.1, hy + 0.12, s * 0.08, 0xd8a040, { rz: 0.8 }));
+      b.ell(W * 0.42, W * 0.19, W * 0.23, hx, hy, 0, o.body, { mat: skin });
+      if (o.head === 'varactyl') b.sym((sd) => b.limb([hx - 0.08, hy + 0.08, sd * 0.07], [hx - 0.22, hy + 0.24, sd * 0.1], 0.03, 0.008, 0xd8a040, { mat: SURF.fur, seg: 5 }));
+      headR = W * 0.22;
       break;
     case 'fambaa':
     case 'falumpaset':
-      b.sphere(W * 0.25, hx, hy, 0, o.body, { sx: 1.6 });
-      b.cone(W * 0.1, W * 0.3, hx + W * 0.4, hy - W * 0.1, 0, o.body, { rz: -Math.PI / 2 - 0.4 });
+      b.ell(W * 0.4, W * 0.25, W * 0.25, hx, hy, 0, o.body, { mat: skin });
+      b.limb([hx + W * 0.3, hy - W * 0.05, 0], [hx + W * 0.55, hy - W * 0.3, 0], W * 0.09, W * 0.05, o.body, { mat: skin, seg: 7 }); // trompa
+      headR = W * 0.25;
       break;
     case 'wampa':
     case 'nexu':
     case 'cat':
     case 'boar':
-      b.sphere(W * 0.3, hx, hy, 0, o.body, { sx: 1.3 });
-      if (o.head === 'boar') b.sym((s) => b.cone(0.03, 0.12, hx + W * 0.3, hy - 0.03, s * 0.08, C.offwhite, { rz: -1.3 }));
-      if (o.head === 'nexu') b.sym((s) => b.cone(0.04, 0.12, hx, hy + 0.12, s * 0.08, o.body));
+      b.ell(W * 0.36, W * 0.29, W * 0.3, hx, hy, 0, o.body, { mat: skin });
+      b.ell(W * 0.16, W * 0.12, W * 0.14, hx + W * 0.3, hy - W * 0.06, 0, o.belly ?? o.body, { mat: skin }); // hocico
+      if (o.head === 'boar') b.sym((sd) => b.limb([hx + W * 0.36, hy - 0.06, sd * 0.06], [hx + W * 0.44, hy + 0.02, sd * 0.09], 0.02, 0.006, C.offwhite, { mat: SURF.bark, seg: 5 }));
+      if (o.head === 'nexu' || o.head === 'cat') b.sym((sd) => b.cone(0.04, 0.12, hx - 0.02, hy + W * 0.27, sd * 0.08, o.body, { mat: skin, seg: 6 }));
+      headR = W * 0.29;
       break;
     case 'acklay':
-      b.sphere(W * 0.22, hx, hy, 0, o.body, { sx: 1.6 });
+      b.ell(W * 0.36, W * 0.2, W * 0.2, hx, hy, 0, o.body, { mat: skin });
+      headR = W * 0.2;
       break;
     default:
-      b.sphere(W * 0.26, hx, hy, 0, o.body, { sx: 1.3 });
-      if (o.horns) b.sym((s) => b.cone(0.04, 0.18, hx - 0.05, hy + 0.12, s * W * 0.2, C.offwhite, { rx: s * 0.6 }));
+      b.ell(W * 0.34, W * 0.26, W * 0.26, hx, hy, 0, o.body, { mat: skin });
+      if (o.horns) b.sym((sd) => b.limb([hx - 0.04, hy + 0.1, sd * W * 0.16], [hx - 0.1, hy + 0.24, sd * W * 0.28], 0.03, 0.01, C.offwhite, { mat: SURF.bark, seg: 6 }));
   }
-  b.sphere(0.03, hx + W * 0.25, hy + W * 0.1, W * 0.12, C.black);
-  b.sphere(0.03, hx + W * 0.25, hy + W * 0.1, -W * 0.12, C.black);
+  // ojos pequeños y oscuros a los lados de la cabeza
+  b.sym((sd) => b.ell(0.022, 0.018, 0.012, hx + headR * 0.55, hy + headR * 0.3, sd * headR * 0.78, 0x140e0a, { mat: SURF.glass, seg: 8 }));
   b.part('body');
-  // cola
+  // cola en dos tramos
   if (o.tail !== false) {
-    b.part('tail', 'tail', [-L * 0.5, by, 0], 'body');
-    b.cone(W * 0.15, L * 0.6, -L * 0.75, by - H * 0.05, 0, o.body, { rz: Math.PI / 2 + 0.25 });
+    b.part('tail', 'tail', [-L * 0.45, by, 0], 'body');
+    const t1: [number, number, number] = [-L * 0.75, by - H * 0.05, 0];
+    b.limb([-L * 0.42, by + H * 0.02, 0], t1, W * 0.18, W * 0.1, o.body, { mat: skin, seg: 8 });
+    b.limb(t1, [-L * 1.05, by - H * 0.18, 0], W * 0.1, W * 0.03, o.body, { mat: skin, seg: 7 });
   }
-  // patas
+  // patas con muslo, rodilla y pie
   if (o.legs === 2) {
     for (const side of [1, -1]) {
       const z = side * W * 0.28;
       b.part(side > 0 ? 'legL' : 'legR', side > 0 ? 'legL' : 'legR', [0, by - H * 0.1, z]);
-      b.box(W * 0.22, by * 0.6, W * 0.2, 0.03, by * 0.68, z, o.body, { rz: -0.2 });
-      b.box(W * 0.14, by * 0.55, W * 0.14, 0, by * 0.28, z, o.body, { rz: 0.25 });
-      b.box(W * 0.35, 0.06, W * 0.2, 0.05, 0.03, z, o.belly ?? o.body);
+      const knee: [number, number, number] = [W * 0.18, by * 0.5, z];
+      b.limb([0, by - H * 0.05, z], knee, W * 0.19, W * 0.11, o.body, { mat: skin, seg: 8 });
+      b.limb(knee, [-W * 0.05, 0.06, z], W * 0.1, W * 0.07, o.body, { mat: skin, seg: 8 });
+      for (const t of [-1, 0, 1]) b.limb([-W * 0.05, 0.04, z], [W * 0.18, 0.02, z + t * W * 0.09], 0.025, 0.012, o.belly ?? o.body, { mat: SURF.leather, seg: 5 });
     }
   } else {
-    const anims = [['legFL', L * 0.32, 1], ['legFR', L * 0.32, -1], ['legBL', -L * 0.32, 1], ['legBR', -L * 0.32, -1]] as const;
+    const anims = [['legFL', L * 0.3, 1], ['legFR', L * 0.3, -1], ['legBL', -L * 0.3, 1], ['legBR', -L * 0.3, -1]] as const;
     for (const [an, x, side] of anims) {
-      const z = side * W * 0.32;
+      const z = side * W * 0.3;
       b.part(an, an, [x, by - H * 0.1, z]);
-      b.cyl(W * 0.13, W * 0.11, by, x, by / 2, z, o.body, { seg: 8 });
-      b.cyl(W * 0.14, W * 0.15, 0.06, x, 0.03, z, o.belly ?? 0x3a3020, { seg: 8 });
+      const knee: [number, number, number] = [x + (x > 0 ? 0.02 : -0.03), by * 0.48, z];
+      b.limb([x, by - H * 0.05, z], knee, W * 0.15, W * 0.11, o.body, { mat: skin, seg: 8 });
+      b.limb(knee, [x, 0.07, z], W * 0.1, W * 0.09, o.body, { mat: skin, seg: 8 });
+      b.cyl(W * 0.11, W * 0.13, 0.08, x, 0.04, z, o.belly ?? 0x3a3020, { seg: 10, mat: SURF.leather }); // pezuña
     }
   }
   b.part('body');
-  if (o.saddle) b.box(L * 0.35, 0.06, W * 0.7, 0, by + H * 0.42, 0, C.team, { team: 1 });
+  b.surf(prevMat);
+  if (o.saddle) {
+    b.rbox(L * 0.35, 0.06, W * 0.72, 0.02, 0, by + H * 0.42, 0, 0x5a3a20, { mat: SURF.leather });
+    b.rbox(L * 0.36, 0.02, W * 0.74, 0.008, 0, by + H * 0.45, 0, C.team, { team: 1, mat: SURF.fabric });
+  }
   if (o.rider) b.offset(-L * 0.05, by + H * 0.25, 0, () => humanoid(b, { ...o.rider!, scale: (o.rider!.scale ?? 1) * 0.9, seated: true }));
 }
 

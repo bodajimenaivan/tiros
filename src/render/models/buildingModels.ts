@@ -376,23 +376,39 @@ export function buildBuildingModel(defId: string, style: CivStyle): ModelDef {
       break;
     }
     case 'farm': {
-      // parcela de cultivo hidropónico + vaporizador de humedad
-      const soil = style === 'gungan' ? 0x5a7a4a : style === 'wookiee' ? 0x6a5030 : 0x8a7050;
-      const crop = style === 'imperial' || style === 'cis' || style === 'tradefed' ? 0x7aa040 : style === 'gungan' ? 0x5ab07a : 0x8ab040;
-      b.box(S * 0.96, 0.05, S * 0.96, 0, 0.025, 0, soil);
-      b.box(S * 0.98, 0.08, 0.06, 0, 0.04, S * 0.47, 0x5a4a38);
-      b.box(S * 0.98, 0.08, 0.06, 0, 0.04, -S * 0.47, 0x5a4a38);
+      // parcela de cultivo de humedad: surcos de tierra, plantas en hilera y vaporizador
+      const soil = style === 'gungan' ? 0x4a5a3a : style === 'wookiee' ? 0x5a4028 : 0x6e5438;
+      const crop = style === 'imperial' || style === 'cis' || style === 'tradefed' ? 0x6a8a38 : style === 'gungan' ? 0x4a9a6a : 0x7a9a3a;
+      const crop2 = style === 'gungan' ? 0x6ab08a : 0x9aae4a;
+      // losa gruesa: en terreno irregular no debe quedar enterrada
+      b.rbox(S * 0.98, 0.22, S * 0.98, 0.03, 0, -0.03, 0, soil, { mat: SURF.plaster, ms: 2 });
+      // bordes de madera / piedra
+      for (const sz of [-1, 1]) b.rbox(S * 0.98, 0.14, 0.07, 0.02, 0, 0.06, sz * S * 0.47, 0x5a4a38, { mat: SURF.wood });
+      for (const sx of [-1, 1]) b.rbox(0.07, 0.14, S * 0.98, 0.02, sx * S * 0.47, 0.06, 0, 0x5a4a38, { mat: SURF.wood });
       b.part('crops', 'static');
-      for (let i = 0; i < 6; i++) {
-        const z = -S * 0.38 + i * S * 0.152;
-        b.box(S * 0.82, 0.1, 0.13, -0.05, 0.1, z, crop);
-        for (let j = 0; j < 5; j++) b.sphere(0.09, -S * 0.36 + j * S * 0.17, 0.18, z, i % 2 ? crop : 0x9ac050, { seg: 5, flat: true });
+      const rows = 6;
+      for (let i = 0; i < rows; i++) {
+        const z = -S * 0.38 + (i * S * 0.76) / (rows - 1);
+        // caballón de tierra
+        b.limb([-S * 0.42, 0.09, z], [S * 0.42, 0.09, z], 0.07, 0.07, soil, { mat: SURF.plaster, ms: 2, seg: 6 });
+        for (let j = 0; j < 6; j++) {
+          const x = -S * 0.38 + j * S * 0.152 + ((i * 7 + j * 3) % 5) * 0.012;
+          const hgt = 0.24 + ((i * 3 + j * 5) % 7) * 0.02;
+          const c = (i + j) % 3 ? crop : crop2;
+          // mata de hojas: tres conos inclinados
+          for (let k = 0; k < 3; k++) {
+            const a = k * 2.1 + i + j;
+            b.cone(0.06, hgt, x + Math.cos(a) * 0.05, 0.13 + hgt / 2, z + Math.sin(a) * 0.05, c, { seg: 5, rx: Math.sin(a) * 0.45, rz: -Math.cos(a) * 0.45, mat: SURF.leaves, ms: 3 });
+          }
+        }
       }
       b.part('body');
-      b.cyl(0.07, 0.09, 1.1, S * 0.4, 0.55, S * 0.4, 0xd0ccc0, { seg: 8 });
-      b.cyl(0.17, 0.17, 0.05, S * 0.4, 0.8, S * 0.4, 0xb0aca0, { seg: 8 });
-      b.cyl(0.17, 0.17, 0.05, S * 0.4, 1.0, S * 0.4, 0xb0aca0, { seg: 8 });
-      b.box(0.1, 0.06, 0.1, S * 0.4, 1.12, S * 0.4, C.team, { team: 1 });
+      // vaporizador de humedad
+      b.cyl(0.06, 0.08, 1.1, S * 0.4, 0.55, S * 0.4, 0xd0ccc0, { seg: 10, mat: SURF.panel });
+      for (let i = 0; i < 3; i++) b.cyl(0.16, 0.16, 0.04, S * 0.4, 0.62 + i * 0.18, S * 0.4, 0xb0aca0, { seg: 12, mat: SURF.panel });
+      b.cyl(0.1, 0.06, 0.12, S * 0.4, 1.15, S * 0.4, 0x8a8478, { seg: 10, mat: SURF.panel });
+      b.rbox(0.1, 0.06, 0.1, 0.015, S * 0.4, 1.24, S * 0.4, C.team, { team: 1 });
+      b.cyl(0.12, 0.14, 0.12, S * 0.4, 0.06, S * 0.4, 0x6a6a64, { seg: 10, mat: SURF.concrete });
       break;
     }
     case 'power_core': {

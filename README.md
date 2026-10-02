@@ -108,7 +108,7 @@ Para avanzar de era hacen falta recursos y dos edificios distintos de la era act
 | Mover, atacar, recolectar, reparar o entrar en guarnición | Clic derecho |
 | Encadenar órdenes | Mantener Mayúsculas al dar la orden |
 | Ataque en movimiento / Patrullar | Botones del panel y clic en el destino |
-| Mover la cámara | Flechas del teclado, ratón en los bordes, arrastrar con el botón central o clic en el minimapa |
+| Mover la cámara | Flechas del teclado, ratón en los bordes de la pantalla (también si sale de la ventana por un borde), arrastrar con el botón central o clic en el minimapa |
 | Zoom | Rueda del ratón |
 | Rotar la cámara | Ctrl + rueda, o las teclas Inicio y Fin |
 | Comandos del panel | Teclas de la cuadrícula (Q W E R T / A S D F G / Z X C V B) |
@@ -122,6 +122,25 @@ Para avanzar de era hacen falta recursos y dos edificios distintos de la era act
 | Velocidad de juego | `+` / `-` |
 | Menú | Esc o F10 |
 
+## Gráficos
+
+- **Modelos detallados.** Soldados, trabajadores, héroes, vehículos, edificios, árboles y rocas se generan por código con proporciones realistas, armaduras por placas, cascos reconocibles y aristas biseladas.
+- **Superficies con textura.** Cada pieza lleva su superficie (armadura, chapa con remaches, tela, pelo, piel, adobe, madera, corteza, hojas...) con relieve y rugosidad.
+- **Terreno realista.** Se genera en la tarjeta gráfica con capas de material para cada planeta: arena con dunas, hierba, roca con fracturas, nieve, barro, ceniza, chapa o sal.
+- **Iluminación.** Reflejos del cielo de cada planeta, sombras y, en calidad Alta y Ultra, oclusión ambiental.
+- **Niveles de detalle.** Lejos de la cámara se usan modelos más ligeros, y solo se dibuja lo que está en pantalla.
+
+### Modelos y texturas propios
+
+Puedes sustituir cualquier modelo o textura del suelo poniendo archivos en la carpeta `assets/`:
+
+- `assets/terrain/`: texturas de suelo.
+- `assets/models/<civilización>/`: unidades y edificios.
+- `assets/models/heroes/`: héroes.
+- `assets/models/anims/`: animaciones de Mixamo.
+
+El juego ajusta solo el tamaño, la orientación, el color de equipo (las zonas pintadas en magenta) y las animaciones. Al regenerar `Jugar.html` con `npm run build:single`, los archivos se incluyen dentro. La guía `docs/modelos-con-ia.md` explica cómo crearlos con ChatGPT, Gemini, Meshy, Tripo o Mixamo, con prompts listos para copiar y la lista de nombres de archivo.
+
 ## Música
 
 La música se genera por código: hay temas para el menú, la galaxia, cada tipo de planeta, la victoria y la derrota, y la intensidad sube durante los combates.
@@ -134,7 +153,15 @@ Por ejemplo, `public/music/heroic.mp3`. Si existe un archivo, se usa en lugar de
 
 ## Opciones gráficas
 
-En **Opciones** puedes cambiar la calidad (Baja, Media, Alta o Ultra), las sombras, el bloom, la resolución interna, el volumen de la música y de los efectos, las voces, la velocidad de juego, el desplazamiento de la cámara por los bordes y si las barras de vida se ven siempre. Si el juego va lento, baja la calidad o la resolución interna.
+En **Opciones** puedes cambiar:
+
+- la calidad (Baja, Media, Alta o Ultra), las sombras, el bloom y la resolución interna;
+- el volumen de la música y de los efectos, y las voces;
+- la velocidad de juego y el desplazamiento de la cámara por los bordes;
+- la pantalla completa al jugar (activada por defecto; mantén pulsado Esc para salir de ella);
+- si las barras de vida se ven siempre.
+
+Si el juego va lento, baja la calidad o la resolución interna. En calidad Media y Baja se usan siempre los modelos ligeros y no hay oclusión ambiental.
 
 ## Estructura del código
 
@@ -143,9 +170,11 @@ src/
   data/      Datos del juego: unidades, edificios, tecnologías, civilizaciones y planetas
   sim/       Simulación determinista: mapa, búsqueda de caminos, combate, economía y victoria
   ai/        IA de los jugadores (cuatro dificultades)
-  render/    Motor 3D con Three.js: terreno, modelos, efectos, hierba y postprocesado
+  render/    Motor 3D con Three.js: terreno, modelos, superficies, efectos, hierba, recursos propios y postprocesado
   ui/        HUD, menús, minimapa, enciclopedia y controles
   audio/     Sintetizador de efectos, voces y música
   galactic/  Modo Conquista Galáctica
-tests/       Simulaciones sin gráficos, torneos y herramientas de depuración
+tests/       Simulaciones sin gráficos, torneos, pruebas de movimiento y galería de modelos
+assets/      Modelos y texturas propios (opcional)
+docs/        Guía para crear modelos y texturas con IA
 ```

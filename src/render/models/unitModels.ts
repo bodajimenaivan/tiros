@@ -51,7 +51,7 @@ function infantry(style: CivStyle, role: 'trooper' | 'grenadier' | 'aa' | 'worke
       if (role === 'worker') return { body: 0x8a6a4a, legs: GUNGAN, arms: GUNGAN, head: 'gungan', headColor: GUNGAN, weapon: 'tool', accent: 'belt' };
       return { body: 0x6a4a2c, legs: GUNGAN, arms: GUNGAN, head: 'gungan', headColor: GUNGAN, weapon: role === 'trooper' ? 'atlatl' : weapon, accent: v >= 1 ? 'sash' : 'belt', bulk: v === 2 ? 1.1 : 1, skirt: 0x5a3e24 };
     case 'wookiee':
-      if (role === 'worker') return { body: 0x9a7650, head: 'wookiee', headColor: 0x9a7650, weapon: 'tool', fur: true, accent: 'sash', scale: 1.12, bulk: 1.12 };
+      if (role === 'worker') return { body: 0x7e5c3c, head: 'wookiee', headColor: 0x7e5c3c, weapon: 'tool', fur: true, accent: 'sash', scale: 1.12, bulk: 1.12 };
       return { body: FUR, head: 'wookiee', headColor: FUR, weapon: role === 'trooper' ? 'bowcaster' : weapon, fur: true, accent: 'sash', scale: 1.15 + v * 0.03, bulk: 1.15 };
   }
 }
@@ -98,7 +98,7 @@ export function buildUnitModel(defId: string, style: CivStyle, saber: number): M
     return b.build(defId + style);
   }
   // vehículos y naves: aristas biseladas y chapa metálica por defecto
-  if (!['worker', 'trooper', 'grenadier', 'aaTrooper', 'jediKnight', 'jediMaster'].includes(cls)) {
+  if (!['worker', 'trooper', 'grenadier', 'aaTrooper', 'jediKnight', 'jediMaster', 'animal', 'hero', 'unique'].includes(cls)) {
     b.bevel = 0.03;
     b.surf(style === 'gungan' || style === 'wookiee' ? SURF.wood : SURF.hull);
   }
