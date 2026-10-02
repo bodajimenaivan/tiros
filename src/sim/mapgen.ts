@@ -30,7 +30,7 @@ export interface MapGenResult {
   decor: Decor[];
 }
 
-export const RES_AMOUNT = { tree: 100, bush: 125, nova: 450, ore: 350, carcass: 0 };
+export const RES_AMOUNT = { tree: 125, bush: 125, nova: 550, ore: 400, carcass: 0 };
 
 export function generateMap(planet: PlanetDef, N: number, teams: number[], seed: number): MapGenResult {
   const rng = new RNG(seed);
@@ -318,11 +318,12 @@ export function generateMap(planet: PlanetDef, N: number, teams: number[], seed:
     // bayas
     placeNear(i, 7, 9, 1, (x, y) => cluster(x, y, 6, 'bush', RES_AMOUNT.bush, 1.2));
     // nova principal y secundaria
-    placeNear(i, 10, 12.5, 1, (x, y) => cluster(x, y, 7, 'nova', RES_AMOUNT.nova, 1.3));
-    placeNear(i, 16, 20, 1, (x, y) => cluster(x, y, 4, 'nova', RES_AMOUNT.nova, 1.1));
+    placeNear(i, 10, 12.5, 1, (x, y) => cluster(x, y, 8, 'nova', RES_AMOUNT.nova, 1.3));
+    placeNear(i, 16, 20, 1, (x, y) => cluster(x, y, 5, 'nova', RES_AMOUNT.nova, 1.2));
+    placeNear(i, 22, 28, 1, (x, y) => cluster(x, y, 4, 'nova', RES_AMOUNT.nova, 1.1));
     // mineral
     placeNear(i, 11, 13.5, 1, (x, y) => cluster(x, y, 5, 'ore', RES_AMOUNT.ore, 1.2));
-    placeNear(i, 17, 21, 1, (x, y) => cluster(x, y, 4, 'ore', RES_AMOUNT.ore, 1.1));
+    placeNear(i, 17, 21, 1, (x, y) => cluster(x, y, 5, 'ore', RES_AMOUNT.ore, 1.1));
     // animales de caza
     for (let k = 0; k < 4; k++) {
       placeNear(i, 9, 15, 0, (x, y) => {
@@ -331,14 +332,15 @@ export function generateMap(planet: PlanetDef, N: number, teams: number[], seed:
       });
     }
     // línea de bosque principal + bosquecillos
-    placeNear(i, 12, 15, 2, (x, y) => forestBlob(x, y, 42, 4.5) > 25, 13);
-    placeNear(i, 13, 18, 1, (x, y) => forestBlob(x, y, 14, 2.4) > 8, 12);
-    placeNear(i, 14, 20, 1, (x, y) => forestBlob(x, y, 12, 2.2) > 6, 12);
+    placeNear(i, 12, 15, 2, (x, y) => forestBlob(x, y, 60, 5.2) > 35, 13);
+    placeNear(i, 13, 18, 1, (x, y) => forestBlob(x, y, 22, 3) > 12, 12);
+    placeNear(i, 14, 20, 1, (x, y) => forestBlob(x, y, 18, 2.6) > 10, 12);
+    placeNear(i, 18, 24, 1, (x, y) => forestBlob(x, y, 26, 3.4) > 14, 12);
   }
 
   // ───── Bosques globales ─────
   const fd = planet.forest.density;
-  const clusters = Math.round(planet.forest.clusters * (N / 128) ** 2 * 1.3);
+  const clusters = Math.round(planet.forest.clusters * (N / 128) ** 2 * 1.8);
   for (let c = 0; c < clusters; c++) {
     for (let tries = 0; tries < 30; tries++) {
       const x = rng.int(4, N - 5), y = rng.int(4, N - 5);
@@ -358,7 +360,7 @@ export function generateMap(planet: PlanetDef, N: number, teams: number[], seed:
   }
 
   // ───── Recursos disputados en el centro ─────
-  const extraPiles = Math.max(2, Math.round(P * 1.5));
+  const extraPiles = Math.max(3, Math.round(P * 2.5));
   for (let k = 0; k < extraPiles; k++) {
     for (let tries = 0; tries < 60; tries++) {
       const a = rng.next() * Math.PI * 2, d = rng.range(0, N * 0.28);

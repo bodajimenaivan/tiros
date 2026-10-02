@@ -450,7 +450,7 @@ export class Hud {
   private refreshSelection() {
     const sel = this.s.input.selectedEntities();
     const w = this.w;
-    const key = sel.map((e) => e.id + ':' + Math.round((e.hp / e.maxHp) * 50) + ':' + (e.prodQueue?.length ?? 0) + ':' + (e.prodQueue?.[0] ? Math.round((e.prodQueue[0].progress / e.prodQueue[0].total) * 40) : '') + ':' + Math.floor(e.carry) + ':' + Math.floor(e.amount) + ':' + e.defId + ':' + e.owner + ':' + (e.garrison?.length ?? 0) + (e.built ? 'b' : Math.round(e.progress * 40))).join(',');
+    const key = sel.map((e) => e.id + ':' + Math.round((e.hp / e.maxHp) * 50) + ':' + (e.prodQueue?.length ?? 0) + ':' + (e.prodQueue?.[0] ? Math.round((e.prodQueue[0].progress / e.prodQueue[0].total) * 40) : '') + ':' + Math.floor(e.carry) + ':' + Math.floor(e.amount) + ':' + e.defId + ':' + e.owner + ':' + (e.garrison?.length ?? 0) + (e.built ? 'b' : Math.round(e.progress * 40))).join(',') + '|' + (this.me?.era ?? 0);
     if (key === this.selKey) return;
     this.selKey = key;
     clear(this.selPanel);

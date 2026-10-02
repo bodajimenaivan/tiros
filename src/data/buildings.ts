@@ -64,7 +64,7 @@ def({
 def({
   id: 'turret', name: 'Torreta Bláster', desc: 'Defensa fija contra unidades terrestres.',
   era: 2, cost: { carbon: 25, ore: 125 }, time: 70, hp: 1000, size: 1, los: 9, armor: { melee: 1, ranged: 7 },
-  attack: { damage: 6, type: 'ranged', range: 8, reload: 2, projectile: 'bolt', bonus: { infantry: 1 } },
+  attack: { damage: 6, type: 'ranged', range: 8, reload: 2.2, projectile: 'bolt', bonus: { infantry: 1 } },
   tags: ['building', 'turret'], model: 'turret', hotkey: 'T', garrison: 5,
 });
 def({

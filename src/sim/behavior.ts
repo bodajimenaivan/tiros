@@ -160,15 +160,19 @@ export function findTarget(w: World, e: Entity, radius: number): Entity | null {
     }
   }
   if (best) return best;
-  // edificios
+  // edificios: preferir aquellos a los que se hace daño de verdad
   w.staticHash.query(e.x, e.y, radius, out);
+  const myDmg = w.players[e.owner].stats_of(e.defId).damage;
   for (const b of out) {
     if (!b.alive || b.kind !== 'building' || !w.hostile(e, b)) continue;
     if (!canHit(w, e, b, atk)) continue;
     const d = w.distTo(e, b);
     let sc = -d;
     if (b.bd!.wall) sc -= 20;
-    if (b.bd!.attack) sc += 3;
+    const bs = w.players[b.owner].stats_of(b.defId);
+    const eff = Math.max(1, myDmg - (atk.type === 'melee' ? bs.armorMelee : bs.armorRanged)) + (atk.bonus?.building ?? 0) + (b.bd!.tags.includes('turret') ? atk.bonus?.turret ?? 0 : 0);
+    if (b.bd!.attack) sc += eff >= 8 ? 6 : eff <= 2 ? -6 : 2;
+    else sc += Math.min(4, eff * 0.5);
     if (sc > bestScore) {
       bestScore = sc;
       best = b;

@@ -1,0 +1,13 @@
+Coloca aquí tu propia música para sustituir la banda sonora generada por el juego.
+Nombres admitidos (.mp3 u .ogg):
+
+  menu      Menú principal
+  galaxy    Mapa de la Conquista Galáctica
+  heroic    Planetas de tono heroico (Tatooine, Naboo, Kashyyyk...)
+  dark      Planetas oscuros (Mustafar)
+  mystic    Planetas místicos (Endor, Dagobah, Felucia...)
+  war       Planetas de guerra (Hoth, Geonosis, Coruscant...)
+  victory   Pantalla de victoria
+  defeat    Pantalla de derrota
+
+Ejemplo: heroic.mp3

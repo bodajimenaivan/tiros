@@ -114,11 +114,11 @@ export function createHologramMaterial(): THREE.ShaderMaterial {
         if (vLocalY < cutH) discard;
         float fres = pow(1.0 - abs(dot(normalize(vN), vView)), 2.0);
         float scan = 0.5 + 0.5 * sin(vLocalY * 40.0 - uTime * 6.0);
-        float a = 0.08 + fres * 0.45 + scan * 0.06;
-        gl_FragColor = vec4(uColor * (0.6 + fres), a);
+        float a = 0.1 + fres * 0.32 + scan * 0.05;
+        gl_FragColor = vec4(uColor * (0.55 + fres * 0.6), a);
       }`,
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
   });
 }

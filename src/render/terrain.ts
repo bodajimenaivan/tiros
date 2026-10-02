@@ -318,9 +318,10 @@ diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.82, smoothstep(0.3
             col += uSunCol * spec * (uKind == 3 ? 0.4 : 1.6);
             // espuma en la orilla
             float foamN = texture2D(tNoise, uv * 0.35 + uTime * 0.03).b;
-            float foam = (1.0 - smoothstep(0.0, 0.28, depth)) * smoothstep(0.35, 0.65, foamN + 0.25 * sin(uTime * 1.5 + depth * 20.0));
-            if (uKind != 3) col = mix(col, vec3(0.92, 0.96, 1.0), foam * 0.75);
-            alpha = mix(0.55, 0.92, dk);
+            float wave = 0.5 + 0.5 * sin(uTime * 1.3 - depth * 38.0 + foamN * 4.0);
+            float foam = (1.0 - smoothstep(0.0, 0.13, depth)) * smoothstep(0.45, 0.8, foamN * 0.6 + wave * 0.5);
+            if (uKind != 3) col = mix(col, vec3(0.85, 0.92, 0.97), foam * 0.5);
+            alpha = mix(0.5, 0.93, smoothstep(0.0, 0.5, depth) * 0.4 + dk * 0.6);
             if (uKind == 3) { col *= 0.8; alpha = mix(0.75, 0.97, dk); }
             if (uKind == 4) col += vec3(0.1, 0.4, 0.1) * (0.5 + 0.5 * sin(uTime + uv.x));
           }

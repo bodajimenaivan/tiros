@@ -77,6 +77,11 @@ export class AIController {
   scoutIdx = 0;
   lastBuildAt: Record<string, number> = {};
   defending = false;
+  armyPeak = 0;
+  armyGrowAt = 0;
+  lastThreats: Entity[] = [];
+  hopelessSince = 0;
+  defenders = new Set<number>();
   knownEnemyBuildings = new Map<number, { x: number; y: number; owner: number; defId: string }>();
   savingForEra = false;
   thinkCount = 0;
@@ -146,6 +151,7 @@ export class AIController {
       this.baseX = ccs[0].x;
       this.baseY = ccs[0].y;
     }
+    if (this.considerResign(workers, military, buildings)) return;
     this.observe();
     this.updateGatherCounts();
 
@@ -160,6 +166,40 @@ export class AIController {
     this.manageHolocrons(units);
     if (this.p.difficulty !== 'easy' && this.thinkCount % 4 === 0) this.manageMarket(buildings);
     if (this.thinkCount % 6 === 0) this.manageRepairs(buildings, workers);
+  }
+
+  /** Rendición cuando la situación es desesperada (como la IA de AoE2) */
+  considerResign(workers: Entity[], military: Entity[], buildings: Entity[]): boolean {
+    const w = this.w;
+    const p = this.p;
+    if (p.difficulty === 'easy' || this.time < 1200 || this.thinkCount % 10 !== 0 || p.resigned || p.defeated) return false;
+    const hasCC = buildings.some((b) => b.defId === 'command_center' && b.built);
+    const canRebuild = workers.length >= 2 && p.canAfford(p.stats_of('command_center').cost);
+    const producers = buildings.filter((b) => b.built && b.bd!.trains?.length && b.defId !== 'command_center').length;
+    // fuerza del enemigo más fuerte
+    let enemyArmy = 0;
+    for (const q of w.players) {
+      if (!q.id || !p.isEnemy(q.id) || q.defeated) continue;
+      let n = 0;
+      for (const u of w.units) if (u.alive && u.owner === q.id && u.ud!.cls !== 'worker') n++;
+      enemyArmy = Math.max(enemyArmy, n);
+    }
+    // aliados vivos con fuerza: seguir luchando
+    const allyAlive = w.players.some((q) => q.id && q.id !== this.pid && p.isAlly(q.id) && !q.defeated && !q.resigned);
+    if (allyAlive) return false;
+    const hopeless =
+      (!hasCC && !canRebuild && workers.length < 5 && military.length < 4 && enemyArmy >= 15) ||
+      (workers.length + military.length <= 3 && !canRebuild && producers === 0 && enemyArmy >= 10);
+    if (!hopeless) {
+      this.hopelessSince = 0;
+      return false;
+    }
+    if (!this.hopelessSince) this.hopelessSince = this.time;
+    if (this.time - this.hopelessSince < 45) return false;
+    p.resigned = true;
+    for (const q of w.players) if (q.id) w.msg(q.id, `${p.name} se rinde.`, '#ffb060');
+    w.checkVictory();
+    return true;
   }
 
   // ─────────────────────────── Percepción ───────────────────────────
@@ -391,7 +431,7 @@ export class AIController {
       return true;
     }
     // no hay recurso cerca de depósitos: construir depósito junto al recurso más cercano
-    const far = this.bestNode(this.baseX, this.baseY, resKind, 40);
+    const far = this.bestNode(this.baseX, this.baseY, resKind, 40) ?? this.bestNode(this.baseX, this.baseY, resKind, 80);
     if (!far) return false;
     const dropDef = kind === 'carbon' ? 'carbon_center' : 'mining_center';
     const pending = w.buildings.some((b) => b.alive && b.owner === this.pid && b.defId === dropDef && !b.built && Math.hypot(b.x - far.x, b.y - far.y) < 10);
@@ -537,7 +577,8 @@ export class AIController {
       if (!exp[r.ty * w.N + r.tx] && this.p.difficulty !== 'extreme') continue;
       const cap = r.resKind === 'tree' ? 2 : r.resKind === 'bush' ? 2 : r.resKind === 'carcass' ? 5 : 3;
       if (r.gatherers >= cap) continue;
-      // evitar recursos peligrosos (cerca de enemigos)
+      // evitar recursos peligrosos (cerca de defensas enemigas)
+      if (maxD > 20 && this.dangerous(r.x, r.y)) continue;
       const d = Math.hypot(r.x - x, r.y - y) + r.gatherers * 1.2;
       if (d < bd) {
         bd = d;
@@ -545,6 +586,18 @@ export class AIController {
       }
     }
     return best;
+  }
+
+  /** ¿Hay una defensa o base enemiga conocida cerca de este punto? */
+  dangerous(x: number, y: number): boolean {
+    for (const [, info] of this.knownEnemyBuildings) {
+      if (!this.p.isEnemy(info.owner)) continue;
+      const def = BUILDINGS[info.defId];
+      if (!def?.attack) continue;
+      const r = (def.attack.range ?? 6) + 4;
+      if (Math.abs(info.x - x) < r && Math.abs(info.y - y) < r && Math.hypot(info.x - x, info.y - y) < r) return true;
+    }
+    return false;
   }
 
   nearestHuntable(x: number, y: number, r: number): Entity | null {
@@ -777,7 +830,10 @@ export class AIController {
       minR = 5;
       maxR = 12;
     }
-    const spot = this.findSpot(defId, cx, cy, minR, maxR, false);
+    let spot = this.findSpot(defId, cx, cy, minR, maxR, false);
+    // base saturada: ampliar el radio (refugios y edificios genéricos)
+    if (!spot && !bd.needsPower && defId !== 'command_center') spot = this.findSpot(defId, this.baseX, this.baseY, maxR, maxR + 12, false);
+    if (!spot && bd.needsPower) spot = this.findSpot(defId, this.baseX, this.baseY, 6, 24, false);
     if (!spot) {
       this.lastBuildAt[defId] = this.time;
       return false;
@@ -827,7 +883,7 @@ export class AIController {
         const ty = Math.round(cy + Math.sin(a) * r - sz / 2);
         tries.push({ x: tx, y: ty, d: r });
       }
-      if (tries.length > 400) break;
+      if (tries.length > 700) break;
     }
     for (const t of tries) {
       if (!w.canPlace(this.pid, defId, t.x, t.y, true)) continue;
@@ -941,8 +997,14 @@ export class AIController {
     add('fighter', air * 4);
     // asedio en ataques a partir de la era 3
     if (this.p.era >= 3) {
-      add('pummel', 0.8);
-      add('artillery', 0.6);
+      let defs = 0;
+      for (const [, info] of this.knownEnemyBuildings) {
+        if (info.defId === 'fortress') defs += 2;
+        else if (info.defId === 'turret' || info.defId === 'command_center' || info.defId === 'aa_turret') defs += 1;
+      }
+      const sumW = Object.values(base).reduce((a, b) => a + (b ?? 0), 0);
+      add('pummel', sumW * Math.min(0.2, 0.06 + defs * 0.012));
+      add('artillery', sumW * Math.min(0.12, 0.04 + defs * 0.008));
     }
     return base;
   }
@@ -1048,8 +1110,9 @@ export class AIController {
     const out: Entity[] = [];
     const myB = w.buildings.filter((b) => b.alive && b.owner === this.pid);
     for (const u of w.units) {
-      if (!u.alive || !this.p.isEnemy(u.owner) || u.ud!.cls === 'scout') continue;
+      if (!u.alive || !this.p.isEnemy(u.owner) || u.ud!.cls === 'scout' || u.garrisonedIn) continue;
       for (const b of myB) {
+        if (b.bd!.wall) continue;
         if (Math.abs(u.x - b.x) < 12 && Math.abs(u.y - b.y) < 12) {
           out.push(u);
           break;
@@ -1073,20 +1136,25 @@ export class AIController {
     if (!military.length) {
       this.attacking = false;
     }
-    // defensa
-    const threats = this.thinkCount % 2 === 0 ? this.threatsNearBase() : [];
+    // defensa (las amenazas se recalculan cada dos ciclos y se recuerdan entre medias)
+    if (this.thinkCount % 2 === 0) this.lastThreats = this.threatsNearBase();
+    const threats = this.lastThreats.filter((u) => u.alive);
     if (threats.length) {
       const tStr = this.strength(threats);
       const cx = threats.reduce((a, u) => a + u.x, 0) / threats.length;
       const cy = threats.reduce((a, u) => a + u.y, 0) / threats.length;
-      const defenders = military.filter((u) => Math.hypot(u.x - cx, u.y - cy) < 40);
+      const defenders = military.filter((u) => Math.hypot(u.x - cx, u.y - cy) < 40 || this.defenders.has(u.id));
       const dStr = this.strength(defenders);
       if (!this.defending) {
         this.defending = true;
       }
       for (const u of defenders) {
-        if (u.order?.type === 'attack') continue;
+        const o = u.order;
+        if (o?.type === 'attack' || o?.type === 'convert' || o?.type === 'heal' || o?.type === 'ability') continue;
+        if (u.targetId && w.get(u.targetId)?.alive) continue; // ya combatiendo
+        if (o?.type === 'attackMove' && Math.hypot((o.x ?? 0) - cx, (o.y ?? 0) - cy) < 9) continue;
         w.issue(u, { type: 'attackMove', x: cx, y: cy }, false);
+        this.defenders.add(u.id);
       }
       // si es grave y el ejército está lejos atacando, retirarlo
       if (this.attacking && dStr < tStr * 0.8 && this.d.retreat) {
@@ -1111,8 +1179,11 @@ export class AIController {
     if (this.p.alarm && this.time - this.alarmAt > 6) w.releaseAlarm(this.pid, true);
     if (this.defending) {
       this.defending = false;
-      // volver al punto de reunión
-      for (const u of military) if (!u.order || u.order.type === 'attackMove') w.issue(u, { type: 'move', x: this.rallyX + w.rng.range(-3, 3), y: this.rallyY + w.rng.range(-3, 3) }, false);
+      // los defensores vuelven al punto de reunión (salvo que estemos atacando)
+      if (!this.attacking) {
+        for (const u of military) if (this.defenders.has(u.id) && (!u.order || u.order.type === 'attackMove')) w.issue(u, { type: 'move', x: this.rallyX + w.rng.range(-3, 3), y: this.rallyY + w.rng.range(-3, 3) }, false);
+      }
+      this.defenders.clear();
       // trabajadores vuelven a trabajar
       for (const u of all) if (u.ud!.cls === 'worker' && u.order?.type === 'attack') w.setOrder(u, null);
     }
@@ -1143,8 +1214,17 @@ export class AIController {
 
     // ataques
     const armySize = military.length;
-    const needed = this.d.attackSize + this.wave * this.d.waveGrow;
+    const needed = Math.min(42, this.d.attackSize + this.wave * this.d.waveGrow);
     const treaty = this.time < this.w.treatyUntil;
+    // seguimiento del crecimiento del ejército: si se estanca, atacar con lo que hay
+    if (armySize > this.armyPeak) {
+      this.armyPeak = armySize;
+      this.armyGrowAt = this.time;
+    }
+    const stagnant = this.time - this.armyGrowAt > 80 && armySize >= Math.max(6, needed * 0.45);
+    let enemyMil = 0;
+    for (const k in this.enemySeen) if (k !== 'worker') enemyMil += this.enemySeen[k as UnitClass] ?? 0;
+    const dominant = this.time > 1500 && armySize >= 12 && enemyMil < armySize * 0.3;
     if (!this.attacking) {
       // agrupar en el punto de reunión
       if (this.thinkCount % 4 === 0) {
@@ -1153,8 +1233,10 @@ export class AIController {
           if (Math.hypot(u.x - this.rallyX, u.y - this.rallyY) > 7) w.issue(u, { type: 'move', x: this.rallyX + w.rng.range(-3, 3), y: this.rallyY + w.rng.range(-3, 3) }, false);
         }
       }
-      const popFull = this.p.pop >= this.p.popCap - 2 && this.p.popCap >= this.p.popMax - 5;
-      if (!treaty && this.time >= this.nextAttackAt && (armySize >= needed || popFull) && armySize >= 4) {
+      const popFull = this.p.pop >= this.p.popCap - 2 && armySize >= 6;
+      if (!treaty && this.time >= this.nextAttackAt && (armySize >= needed || popFull || stagnant || dominant) && armySize >= 4) {
+        this.armyPeak = 0;
+        this.armyGrowAt = this.time;
         const tgt = this.chooseTarget();
         if (tgt) {
           this.attacking = true;
@@ -1184,6 +1266,35 @@ export class AIController {
       void str;
       // unidades sin orden: siguiente objetivo
       const idle = military.filter((u) => !u.order);
+      // limpieza: el enemigo apenas tiene ejército -> repartirse entre sus edificios
+      if (idle.length && enemyMil < 3 && this.knownEnemyBuildings.size) {
+        const load = new Map<number, number>();
+        for (const u of military) if (u.order?.type === 'attack' && u.order.targetId) load.set(u.order.targetId, (load.get(u.order.targetId) ?? 0) + 1);
+        const cands: Entity[] = [];
+        for (const [id] of this.knownEnemyBuildings) {
+          const b = w.get(id);
+          if (b && b.alive && b.kind === 'building' && !b.bd!.wall && this.p.isEnemy(b.owner)) cands.push(b);
+        }
+        if (cands.length) {
+          for (const u of idle) {
+            let best: Entity | null = null;
+            let bdist = Infinity;
+            for (const b of cands) {
+              const l = load.get(b.id) ?? 0;
+              const d = Math.hypot(b.x - u.x, b.y - u.y) + l * 6 + (b.bd!.farm || b.defId === 'shelter' ? 8 : 0);
+              if (d < bdist) {
+                bdist = d;
+                best = b;
+              }
+            }
+            if (best) {
+              w.issue(u, { type: 'attack', targetId: best.id }, false);
+              load.set(best.id, (load.get(best.id) ?? 0) + 1);
+            }
+          }
+          return;
+        }
+      }
       if (idle.length) {
         const tgt = this.chooseTarget(military);
         if (!tgt) {
@@ -1208,8 +1319,8 @@ export class AIController {
     const w = this.w;
     const cls = u.ud!.cls;
     if (cls === 'pummel' || cls === 'artillery' || cls === 'bomber') {
-      // ir directamente contra edificios
-      const b = this.nearestEnemyBuilding(u.x, u.y, tgt.pid, tgt.x, tgt.y);
+      // ir directamente contra edificios (primero las defensas)
+      const b = this.nearestEnemyBuilding(u.x, u.y, tgt.pid, tgt.x, tgt.y, true) ?? this.nearestEnemyBuilding(u.x, u.y, tgt.pid, tgt.x, tgt.y);
       if (b) {
         w.issue(u, { type: 'attack', targetId: b.id }, false);
         return;
@@ -1218,13 +1329,15 @@ export class AIController {
     w.issue(u, { type: 'attackMove', x: tgt.x + w.rng.range(-2, 2), y: tgt.y + w.rng.range(-2, 2) }, false);
   }
 
-  nearestEnemyBuilding(x: number, y: number, pid: number, tx: number, ty: number): Entity | null {
+  nearestEnemyBuilding(x: number, y: number, pid: number, tx: number, ty: number, defensesOnly = false): Entity | null {
     let best: Entity | null = null;
     let bd = Infinity;
     for (const b of this.w.buildings) {
       if (!b.alive || b.owner !== pid || b.bd!.wall) continue;
+      if (defensesOnly && !b.bd!.attack) continue;
       if (!this.knownEnemyBuildings.has(b.id) && this.p.difficulty !== 'extreme') continue;
       const d = Math.hypot(b.x - tx, b.y - ty) + Math.hypot(b.x - x, b.y - y) * 0.3;
+      if (defensesOnly && d > 26) continue;
       if (d < bd) {
         bd = d;
         best = b;
@@ -1240,6 +1353,18 @@ export class AIController {
       ax = army.reduce((a, u) => a + u.x, 0) / army.length;
       ay = army.reduce((a, u) => a + u.y, 0) / army.length;
     }
+    // ¿llevamos asedio suficiente para atacar posiciones defendidas?
+    let siege = 0;
+    if (army) for (const u of army) {
+      const c = u.ud!.cls;
+      if (c === 'pummel' || c === 'artillery' || c === 'bomber') siege += 1;
+      else if (c === 'assaultMech' || c === 'grenadier') siege += 0.34;
+    }
+    const defended: { x: number; y: number; r: number }[] = [];
+    for (const [, info] of this.knownEnemyBuildings) {
+      if (info.defId === 'turret') defended.push({ x: info.x, y: info.y, r: 10 });
+      else if (info.defId === 'fortress') defended.push({ x: info.x, y: info.y, r: 11 });
+    }
     // preferir el enemigo más cercano / el objetivo actual
     let best: { x: number; y: number; pid: number } | null = null;
     let bd = Infinity;
@@ -1251,6 +1376,12 @@ export class AIController {
       if (b && b.bd!.wall) d += 30;
       if (b && b.defId === 'command_center') d -= 5;
       if (this.attackTarget && info.owner === this.attackTarget.pid) d -= 10;
+      if (siege < 3) {
+        // evitar meterse bajo torretas sin asedio
+        let cover = 0;
+        for (const dp of defended) if (Math.abs(dp.x - info.x) < dp.r && Math.abs(dp.y - info.y) < dp.r && Math.hypot(dp.x - info.x, dp.y - info.y) < dp.r) cover++;
+        d += cover * (siege >= 1 ? 10 : 22);
+      } else if (b && (b.defId === 'turret' || b.defId === 'fortress')) d -= 8;
       if (d < bd) {
         bd = d;
         best = { x: info.x, y: info.y, pid: info.owner };
@@ -1296,14 +1427,24 @@ export class AIController {
     if (!buildings.some((b) => b.built && b.defId === 'spaceport')) return;
     const p = this.p;
     const w = this.w;
-    // vender excedentes
-    for (const r of ['food', 'carbon', 'ore'] as const) {
-      const limit = r === 'ore' ? (this.hasBuilding('fortress') || p.era < 3 ? 450 : 900) : 1400;
-      for (let k = 0; k < 3 && p.res[r] > limit; k++) w.marketSell(this.pid, r);
+    const tradable = ['food', 'carbon', 'ore'] as const;
+    const short = tradable.filter((r) => p.res[r] < 220).sort((a, b) => p.res[a] - p.res[b]);
+    const reserve = p.era >= 3 ? 220 : 120;
+    // vender excedentes (más agresivo si falta algo o si la Nova escasea)
+    for (const r of tradable) {
+      let limit = r === 'ore' ? (this.hasBuilding('fortress') || p.era < 3 ? 500 : 900) : r === 'food' ? 1300 : 1100;
+      if (short.length && !short.includes(r)) limit -= 350;
+      if (p.res.nova < reserve) limit -= 200;
+      limit = Math.max(450, limit);
+      for (let k = 0; k < 4 && p.res[r] > limit + 100; k++) if (!w.marketSell(this.pid, r)) break;
     }
-    // comprar lo escaso con Nova sobrante
-    for (const r of ['food', 'carbon'] as const) {
-      for (let k = 0; k < 3 && p.res[r] < 200 && p.res.nova > 300 + w.market[r] * 1.3; k++) w.marketBuy(this.pid, r);
+    // comprar lo escaso con Nova, conservando una reserva
+    for (const r of short) {
+      for (let k = 0; k < 3 && p.res[r] < 300; k++) {
+        const price = Math.round(w.market[r] * (1 + w.marketFee(this.pid)));
+        if (p.res.nova < reserve + price) break;
+        if (!w.marketBuy(this.pid, r)) break;
+      }
     }
   }
 

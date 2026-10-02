@@ -10,10 +10,12 @@ export function buildTree(kind: string, variant: number, c1: number, c2: number)
   const trunk = 0x5a3e28;
   switch (kind) {
     case 'redwood': {
-      const h = v(3.2, 4.2);
-      b.cyl(0.18, 0.3, h, 0, h / 2, 0, 0x6a3a22, { seg: 7 });
+      const h = v(3.4, 4.4);
+      const tTop = h * 0.5 + 1.0;
+      b.cyl(0.16, 0.32, tTop, 0, tTop / 2, 0, 0x6a3a22, { seg: 7 });
+      b.cyl(0.33, 0.42, 0.3, 0, 0.15, 0, 0x5a3220, { seg: 7 });
       b.part('leaves', 'static');
-      for (let i = 0; i < 3; i++) b.cone(0.85 - i * 0.2, 1.3, 0, h * 0.55 + i * 0.75, 0, i % 2 ? c1 : c2, { seg: 7 });
+      for (let i = 0; i < 4; i++) b.cone(1.0 - i * 0.17, 1.25, 0, h * 0.5 + i * 0.68, 0, i % 2 ? c1 : c2, { seg: 7 });
       break;
     }
     case 'fern_tree': {

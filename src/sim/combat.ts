@@ -96,7 +96,11 @@ export function fire(w: World, e: Entity, t: Entity) {
     return;
   }
   let shots = atk.shots ?? 1;
-  if (e.bd && e.garrison.length) shots += Math.min(10, Math.ceil(e.garrison.length * 0.6));
+  if (e.bd && e.garrison.length) {
+    // disparos extra por guarnición: torretas hasta +2, centro de mando hasta +5, fortaleza hasta +7
+    const cap = e.bd.tags.includes('turret') ? 2 : e.bd.tags.includes('fortress') ? 7 : 5;
+    shots += Math.min(cap, Math.ceil(e.garrison.length * 0.4));
+  }
   for (let k = 0; k < shots; k++) spawnProjectile(w, e, t, kind, hit, atk.projectileSpeed, -k * 0.12);
 }
 
@@ -277,6 +281,10 @@ function retaliate(w: World, t: Entity, attacker: Entity) {
 export function kill(w: World, t: Entity, attacker: Entity | null, attackerOwner: number) {
   if (!t.alive) return;
   t.hp = 0;
+  if (w.killLog) {
+    const k = (attacker ? attacker.defId : 'none') + '>' + (t.ud ? t.ud.cls : t.defId);
+    w.killLog[k] = (w.killLog[k] ?? 0) + 1;
+  }
   const killerP = attackerOwner ? w.players[attackerOwner] : null;
   if (t.kind === 'unit') {
     const ud = t.ud!;

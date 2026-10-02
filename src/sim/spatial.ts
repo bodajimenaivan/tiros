@@ -6,6 +6,7 @@ export class SpatialHash {
   readonly cw: number;
   readonly ch: number;
   private cells: Entity[][];
+  private used: number[] = [];
 
   constructor(w: number, h: number, cell = 4) {
     this.cell = cell;
@@ -16,7 +17,8 @@ export class SpatialHash {
   }
 
   clear() {
-    for (const c of this.cells) c.length = 0;
+    for (const i of this.used) this.cells[i].length = 0;
+    this.used.length = 0;
   }
 
   private key(x: number, y: number): number {
@@ -26,7 +28,10 @@ export class SpatialHash {
   }
 
   insert(e: Entity) {
-    this.cells[this.key(e.x, e.y)].push(e);
+    const k = this.key(e.x, e.y);
+    const c = this.cells[k];
+    if (!c.length) this.used.push(k);
+    c.push(e);
   }
 
   remove(e: Entity) {

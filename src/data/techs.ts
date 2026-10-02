@@ -102,8 +102,8 @@ def({ id: 'building_armor_1', name: 'Estructuras Reforzadas', desc: 'Edificios +
   mods: [{ target: { allBuildings: true }, stat: 'hp', mul: 1.15 }, { target: { allBuildings: true }, stat: 'armorMelee', add: 1 }, { target: { allBuildings: true }, stat: 'armorRanged', add: 1 }], icon: 'building' });
 def({ id: 'building_armor_2', name: 'Escudos Estructurales', desc: 'Edificios +15% de PV y +1/+1 de armadura.', era: 3, building: 'research_center', cost: { carbon: 250, ore: 150 }, time: 60, requires: ['building_armor_1'],
   mods: [{ target: { allBuildings: true }, stat: 'hp', mul: 1.15 }, { target: { allBuildings: true }, stat: 'armorMelee', add: 1 }, { target: { allBuildings: true }, stat: 'armorRanged', add: 1 }], icon: 'building' });
-def({ id: 'turret_upgrade', name: 'Torretas Pesadas', desc: 'Torretas +40% PV y +3 de daño.', era: 3, building: 'research_center', cost: { carbon: 150, ore: 200 }, time: 50,
-  mods: [{ target: { buildings: ['turret', 'aa_turret'] }, stat: 'hp', mul: 1.4 }, { target: { buildings: ['turret', 'aa_turret'] }, stat: 'damage', add: 3 }], icon: 'turret' });
+def({ id: 'turret_upgrade', name: 'Torretas Pesadas', desc: 'Torretas +30% PV y +2 de daño.', era: 3, building: 'research_center', cost: { carbon: 150, ore: 200 }, time: 50,
+  mods: [{ target: { buildings: ['turret', 'aa_turret'] }, stat: 'hp', mul: 1.3 }, { target: { buildings: ['turret', 'aa_turret'] }, stat: 'damage', add: 2 }], icon: 'turret' });
 def({ id: 'sensors', name: 'Sensores de Largo Alcance', desc: 'Todas las unidades +2 de línea de visión.', era: 2, building: 'research_center', cost: { food: 80, nova: 40 }, time: 30,
   mods: [{ target: { allUnits: true }, stat: 'los', add: 2 }], icon: 'sensor' });
 

@@ -11,6 +11,7 @@ import type { Entity } from '../sim/entity';
 import type { GameEvent } from '../sim/types';
 import { TerrainRenderer } from './terrain';
 import { ModelBatch, type AnimState } from './instances';
+import { GroundCover } from './groundCover';
 import { createModelMaterial, createHologramMaterial, sharedUniforms } from './materials';
 import { buildUnitModel } from './models/unitModels';
 import { buildBuildingModel } from './models/buildingModels';
@@ -62,6 +63,7 @@ export class GameRenderer {
   composer: EffectComposer | null = null;
   bloom: UnrealBloomPass | null = null;
   terrain: TerrainRenderer;
+  cover: GroundCover;
   effects: Effects;
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
@@ -145,6 +147,8 @@ export class GameRenderer {
 
     // ── Terreno ──
     this.terrain = new TerrainRenderer(w, this.scene);
+    this.cover = new GroundCover(w, this.terrain.fogTex, settings.quality);
+    this.scene.add(this.cover.group);
 
     // ── Modelos ──
     this.material = createModelMaterial();
@@ -386,6 +390,7 @@ export class GameRenderer {
     const gt = w.time + alpha * TICK; // tiempo de juego interpolado
     this.updateCamera();
     this.terrain.updateFog(this.viewer, realDt, this.revealAll);
+    this.cover.update();
 
     // límites de vista aproximados para descarte
     const cx = this.camTarget.x, cz = this.camTarget.z;
@@ -989,6 +994,7 @@ export class GameRenderer {
   }
 
   dispose() {
+    this.cover.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }

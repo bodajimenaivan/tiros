@@ -21,6 +21,8 @@ import { updateBuildingCombat, updateProjectiles, damageEntity } from './combat'
 export const TICK = 1 / 20;
 export const HOLOCRON_RATE = 0.45; // nova/s por holocrón
 
+const BASE_ERA_CACHE = new Map<string, number>();
+
 export class World {
   setup: GameSetup;
   planet: PlanetDef;
@@ -906,12 +908,20 @@ export class World {
   }
 
   baseEraOf(unitId: string): number {
+    const c = BASE_ERA_CACHE.get(unitId);
+    if (c !== undefined) return c;
     // buscar la unidad raíz de la línea de mejoras
-    for (const t of Object.values(TECHS)) {
+    let era: number = UNITS[unitId]?.era ?? 1;
+    outer: for (const t of Object.values(TECHS)) {
       if (!t.upgrade) continue;
-      for (const [from, to] of t.upgrade) if (to === unitId) return this.baseEraOf(from);
+      for (const [from, to] of t.upgrade)
+        if (to === unitId) {
+          era = this.baseEraOf(from);
+          break outer;
+        }
     }
-    return UNITS[unitId]?.era ?? 1;
+    BASE_ERA_CACHE.set(unitId, era);
+    return era;
   }
 
   queueTrain(b: Entity, unitId: string, count = 1): number {
@@ -1537,15 +1547,26 @@ export class World {
     return c;
   }
 
+  private fogStamp: Uint8Array[] = [];
+  /** Registro opcional de bajas (depuración / equilibrio) */
+  killLog: Record<string, number> | null = null;
+
   updateFog(force: boolean) {
     const N = this.map.w;
     for (const p of this.players) {
       if (p.id === 0) continue;
       p.visible.fill(0);
+      (this.fogStamp[p.id] ??= new Uint8Array(N * N)).fill(0);
     }
     const stamp = (p: Player, x: number, y: number, r: number) => {
-      const c = this.circle(r);
       const cx = Math.floor(x), cy = Math.floor(y);
+      if (cx < 0 || cy < 0 || cx >= N || cy >= N) return;
+      // evitar estampar dos veces el mismo círculo (unidades agrupadas)
+      const sr = this.fogStamp[p.id];
+      const rq = Math.min(255, Math.ceil(r * 4));
+      if (sr[cy * N + cx] >= rq) return;
+      sr[cy * N + cx] = rq;
+      const c = this.circle(r);
       const vis = p.visible, exp = p.explored;
       for (let k = 0; k < c.length; k += 2) {
         const tx = cx + c[k], ty = cy + c[k + 1];
