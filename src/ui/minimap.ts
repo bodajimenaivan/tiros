@@ -188,7 +188,7 @@ export class Minimap {
     // unidades
     const vis = p?.visible;
     for (const u of w.units) {
-      if (!u.alive) continue;
+      if (!u.alive || u.garrisonedIn) continue;
       const own = u.owner === v || p?.isAlly(u.owner);
       if (!reveal && !own && (!vis || !vis[Math.floor(u.y) * N + Math.floor(u.x)])) continue;
       ctx.fillStyle = u.owner === 0 ? '#e8e0c8' : PLAYER_COLORS[w.players[u.owner].color]?.css ?? '#fff';

@@ -6,7 +6,7 @@ export type ResKind = 'tree' | 'bush' | 'nova' | 'ore' | 'carcass';
 
 export type OrderType =
   | 'move' | 'attackMove' | 'attack' | 'gather' | 'build' | 'repair' | 'returnRes' | 'convert' | 'heal'
-  | 'ability' | 'pickup' | 'deposit' | 'follow' | 'patrol' | 'flee';
+  | 'ability' | 'pickup' | 'deposit' | 'follow' | 'patrol' | 'flee' | 'garrison';
 
 export interface Order {
   type: OrderType;
@@ -116,6 +116,8 @@ export class Entity {
   progressCheckD = 0;
   explicitTarget = false;
   inGoal = false;
+  garrisonedIn = 0; // unidad dentro de un edificio
+  garrison: number[] = []; // edificio: unidades guarnecidas
   unreachable = 0; // máscara de jugadores que no pueden alcanzar este recurso/animal
   bestChaseD = 1e9;
   bestChaseT = 0;

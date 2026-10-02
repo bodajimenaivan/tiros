@@ -114,6 +114,7 @@ export interface BuildingDef {
   maxCount?: number;
   monument?: boolean;
   temple?: boolean;
+  garrison?: number; // capacidad de guarnición
   hotkey?: string;
   tags: Tag[];
   model: string;

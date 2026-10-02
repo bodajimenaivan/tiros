@@ -9,7 +9,7 @@ def({
   id: 'command_center', name: 'Centro de Mando', desc: 'Corazón de tu colonia. Entrena trabajadores, recibe todos los recursos y permite avanzar de era.',
   era: 1, cost: { carbon: 275, ore: 100 }, time: 150, hp: 2400, size: 4, los: 9, armor: { melee: 1, ranged: 6 },
   attack: { damage: 5, type: 'ranged', range: 6, reload: 2, canHitAir: true, projectile: 'bolt', shots: 1 },
-  pop: 10, dropsite: ['food', 'carbon', 'nova', 'ore'], trains: ['worker'], tags: ['building'], model: 'command_center', hotkey: 'C',
+  pop: 10, dropsite: ['food', 'carbon', 'nova', 'ore'], trains: ['worker'], tags: ['building'], model: 'command_center', hotkey: 'C', garrison: 15,
 });
 def({
   id: 'shelter', name: 'Refugio Prefabricado', desc: 'Vivienda modular. Aumenta la población máxima en 5.',
@@ -65,7 +65,7 @@ def({
   id: 'turret', name: 'Torreta Bláster', desc: 'Defensa fija contra unidades terrestres.',
   era: 2, cost: { carbon: 25, ore: 125 }, time: 70, hp: 1000, size: 1, los: 9, armor: { melee: 1, ranged: 7 },
   attack: { damage: 6, type: 'ranged', range: 8, reload: 2, projectile: 'bolt', bonus: { infantry: 1 } },
-  tags: ['building', 'turret'], model: 'turret', hotkey: 'T',
+  tags: ['building', 'turret'], model: 'turret', hotkey: 'T', garrison: 5,
 });
 def({
   id: 'aa_turret', name: 'Torreta Antiaérea', desc: 'Defensa fija con misiles que derriba naves enemigas.',
@@ -107,7 +107,7 @@ def({
   id: 'fortress', name: 'Fortaleza', desc: 'Bastión fuertemente armado. Entrena la unidad única y los héroes de tu civilización.',
   era: 3, cost: { ore: 650 }, time: 180, hp: 4800, size: 4, los: 11, armor: { melee: 8, ranged: 11 }, pop: 20,
   attack: { damage: 11, type: 'ranged', range: 8, reload: 2, shots: 3, canHitAir: true, projectile: 'heavyBolt', bonus: { mech: 2 } },
-  trains: [], tags: ['building', 'fortress'], model: 'fortress', hotkey: 'X',
+  trains: [], tags: ['building', 'fortress'], model: 'fortress', hotkey: 'X', garrison: 20,
 });
 def({
   id: 'monument', name: 'Monumento', desc: 'Maravilla de la galaxia. Si se mantiene en pie el tiempo necesario, otorga la victoria.',

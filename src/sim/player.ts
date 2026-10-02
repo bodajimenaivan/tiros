@@ -81,6 +81,7 @@ export class Player {
   startX = 0;
   startY = 0;
   heroDead: Record<string, number> = {};
+  alarm = false;
   gaia = false;
 
   constructor(id: number, name: string, civ: CivDef, color: number, team: number, human: boolean) {

@@ -8,7 +8,7 @@ import { T_SHALLOW } from './map';
 import type { ResourceType } from '../data/types';
 import type { ComputedStats } from './player';
 
-const BASE_RATE = { bush: 0.37, carcass: 0.5, farm: 0.38, tree: 0.44, nova: 0.42, ore: 0.4 };
+const BASE_RATE = { bush: 0.46, carcass: 0.6, farm: 0.47, tree: 0.54, nova: 0.5, ore: 0.48 };
 const CONVERT_RANGE = 7;
 
 function gatherRate(w: World, e: Entity, kind: keyof typeof BASE_RATE): number {
@@ -311,6 +311,14 @@ export function updateUnit(w: World, e: Entity) {
       }
       break;
     }
+    case 'garrison': {
+      const b = w.get(o.targetId!);
+      if (!b || !w.canGarrison(e, b)) return w.nextOrder(e);
+      if (w.distTo(e, b) > 0.5 && !w.adjacent(e, b)) {
+        if (moveTo(w, e, b.x, b.y, s, b, 0.5) === 'failed') w.nextOrder(e);
+      } else w.enterGarrison(e, b);
+      return;
+    }
     case 'flee': {
       if (moveTo(w, e, o.x!, o.y!, s) !== 'moving') w.nextOrder(e);
       break;
@@ -551,8 +559,8 @@ function gather(w: World, e: Entity, o: Order, s: ComputedStats) {
     if (w.tickN % 30 === e.id % 30) w.emit({ t: 'gather', id: e.id, res: 'food' });
     if (t.farmFood <= 0) {
       const p = w.players[e.owner];
-      if (p.res.carbon >= 60) {
-        p.res.carbon -= 60;
+      if (p.res.carbon >= 45) {
+        p.res.carbon -= 45;
         t.farmFood = 300 + p.eco('farmFood');
       } else {
         w.msg(e.owner, 'Una granja se ha agotado (sin carbono para replantar).', '#ffb04a');
@@ -910,7 +918,7 @@ export function separation(w: World) {
     b.buildersNext = 0;
   }
   for (const u of w.units) {
-    if (!u.alive) continue;
+    if (!u.alive || u.garrisonedIn) continue;
     const ru = u.radius;
     w.unitHash.query(u.x, u.y, ru + 0.8, out);
     for (const v of out) {

@@ -426,7 +426,7 @@ export class GameRenderer {
 
     const viewerP = w.players[this.viewer];
     for (const e of w.units) {
-      if (!e.alive) continue;
+      if (!e.alive || e.garrisonedIn) continue;
       const x = e.px + (e.x - e.px) * alpha;
       const y = e.py + (e.y - e.py) * alpha;
       if (Math.abs(x - cx) > viewR || Math.abs(y - cz) > viewR) continue;

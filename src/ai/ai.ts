@@ -30,8 +30,8 @@ interface DiffParams {
 const DIFF: Record<Difficulty, DiffParams> = {
   easy: { think: 2.2, workers: 22, firstAttack: 1150, attackSize: 8, waveGrow: 3, researchChance: 0.35, retreat: false, knowsEnemy: false, maxProdPerType: 1, turrets: 0, useConversion: false, heroes: false, monument: false, market: false, reactDelay: 12 },
   normal: { think: 1.1, workers: 40, firstAttack: 760, attackSize: 14, waveGrow: 4, researchChance: 0.75, retreat: false, knowsEnemy: true, maxProdPerType: 2, turrets: 1, useConversion: true, heroes: true, monument: false, market: false, reactDelay: 5 },
-  hard: { think: 0.7, workers: 58, firstAttack: 600, attackSize: 16, waveGrow: 5, researchChance: 1, retreat: true, knowsEnemy: true, maxProdPerType: 3, turrets: 2, useConversion: true, heroes: true, monument: true, market: true, reactDelay: 2 },
-  extreme: { think: 0.45, workers: 72, firstAttack: 520, attackSize: 18, waveGrow: 6, researchChance: 1, retreat: true, knowsEnemy: true, maxProdPerType: 4, turrets: 3, useConversion: true, heroes: true, monument: true, market: true, reactDelay: 0.5 },
+  hard: { think: 0.7, workers: 66, firstAttack: 600, attackSize: 16, waveGrow: 5, researchChance: 1, retreat: true, knowsEnemy: true, maxProdPerType: 3, turrets: 2, useConversion: true, heroes: true, monument: true, market: true, reactDelay: 2 },
+  extreme: { think: 0.45, workers: 78, firstAttack: 520, attackSize: 18, waveGrow: 6, researchChance: 1, retreat: true, knowsEnemy: true, maxProdPerType: 4, turrets: 3, useConversion: true, heroes: true, monument: true, market: true, reactDelay: 0.5 },
 };
 
 type GatherKind = 'food' | 'carbon' | 'nova' | 'ore';
@@ -82,6 +82,8 @@ export class AIController {
   thinkCount = 0;
   holocronHunter = 0;
   lastTributeAsk = 0;
+  alarmAt = 0;
+  needDropsite = -99;
 
   constructor(w: World, pid: number) {
     this.w = w;
@@ -156,7 +158,7 @@ export class AIController {
     this.manageScout(units);
     this.manageArmy(military, units);
     this.manageHolocrons(units);
-    if (this.d.market && this.thinkCount % 5 === 0) this.manageMarket(buildings);
+    if (this.p.difficulty !== 'easy' && this.thinkCount % 4 === 0) this.manageMarket(buildings);
     if (this.thinkCount % 6 === 0) this.manageRepairs(buildings, workers);
   }
 
@@ -229,27 +231,55 @@ export class AIController {
     return 'other';
   }
 
+  /** Unidad concreta (resuelta por mejoras) que representa una clase militar */
+  classUnit(cls: UnitClass): string | null {
+    const base: Partial<Record<UnitClass, string>> = {
+      trooper: 'trooper', grenadier: 'grenadier', aaTrooper: 'aa_trooper', mounted: 'mounted_trooper', strikeMech: 'strike_mech', mechDestroyer: 'mech_destroyer',
+      assaultMech: 'assault_mech', pummel: 'pummel', artillery: 'artillery', aaMobile: 'aa_mobile', fighter: 'fighter', bomber: 'bomber', jediKnight: 'jedi_knight',
+      unique: this.p.civ.uniqueUnit,
+    };
+    const b = base[cls];
+    if (!b || this.p.isDisabled(b)) return null;
+    if (UNITS[b].era > this.p.era) return null;
+    return this.p.resolveUnit(b);
+  }
+
   desiredRatios(): Record<GatherKind, number> {
     const era = this.p.era;
-    let r: Record<GatherKind, number>;
-    if (era === 1) r = { food: 0.58, carbon: 0.4, nova: this.p.techs.has('worker_armor') || this.p.res.nova > 60 ? 0.0 : 0.02, ore: 0.0 };
-    else if (era === 2) r = { food: 0.42, carbon: 0.28, nova: 0.22, ore: 0.08 };
-    else r = { food: 0.36, carbon: 0.24, nova: 0.28, ore: 0.12 };
-    // ajustes por necesidades inmediatas
-    const res = this.p.res;
+    const p = this.p;
+    const eco: Record<GatherKind, number> = era === 1 ? { food: 0.6, carbon: 0.4, nova: 0, ore: 0 } : era === 2 ? { food: 0.46, carbon: 0.38, nova: 0.12, ore: 0.04 } : { food: 0.42, carbon: 0.36, nova: 0.17, ore: 0.05 };
+    // demanda militar según la composición deseada
+    const mil: Record<GatherKind, number> = { food: 0, carbon: 0, nova: 0, ore: 0 };
+    const weights = this.compositionWeights();
+    for (const k in weights) {
+      const id = this.classUnit(k as UnitClass);
+      if (!id) continue;
+      const c = p.stats_of(id).cost;
+      const wgt = weights[k as UnitClass] ?? 0;
+      for (const r of RESOURCE_TYPES) mil[r] += wgt * (c[r] ?? 0);
+    }
+    const ms = mil.food + mil.carbon + mil.nova + mil.ore || 1;
+    for (const r of RESOURCE_TYPES) mil[r] /= ms;
+    const milFrac = [0, 0.1, 0.4, 0.55, 0.6][era];
+    const r: Record<GatherKind, number> = { food: 0, carbon: 0, nova: 0, ore: 0 };
+    for (const k of RESOURCE_TYPES) r[k] = eco[k] * (1 - milFrac) + mil[k] * milFrac;
+    const res = p.res;
     if (this.savingForEra) {
       const t = TECHS['era_' + (era + 1)];
       if (t) {
-        if ((t.cost.nova ?? 0) > res.nova) r.nova += 0.08;
-        if ((t.cost.food ?? 0) > res.food) r.food += 0.08;
+        if ((t.cost.nova ?? 0) > res.nova) r.nova += 0.1;
+        if ((t.cost.food ?? 0) > res.food) r.food += 0.1;
       }
     }
-    if (era >= 3 && !this.hasBuilding('fortress') && res.ore < 650) r.ore += 0.06;
-    if (res.carbon > 1500) r.carbon *= 0.5;
-    if (res.food > 2000) r.food *= 0.6;
-    if (res.nova > 2000) r.nova *= 0.6;
-    if (res.ore > 1500) r.ore *= 0.4;
-    const s = r.food + r.carbon + r.nova + r.ore;
+    if (era >= 3 && !this.hasBuilding('fortress') && res.ore < 650) r.ore += 0.07;
+    if (era >= 2 && res.ore < 150) r.ore += 0.02;
+    // ajuste por existencias: penalizar lo que sobra y priorizar lo escaso
+    for (const k of RESOURCE_TYPES) {
+      const st = res[k];
+      const f = st > 1500 ? 0.2 : st > 900 ? 0.45 : st > 500 ? 0.75 : st < 60 && era > 1 ? 1.35 : 1;
+      r[k] *= f;
+    }
+    const s = r.food + r.carbon + r.nova + r.ore || 1;
     for (const k of RESOURCE_TYPES) r[k] /= s;
     return r;
   }
@@ -365,6 +395,7 @@ export class AIController {
     if (!far) return false;
     const dropDef = kind === 'carbon' ? 'carbon_center' : 'mining_center';
     const pending = w.buildings.some((b) => b.alive && b.owner === this.pid && b.defId === dropDef && !b.built && Math.hypot(b.x - far.x, b.y - far.y) < 10);
+    if (!pending) this.needDropsite = this.time;
     if (!pending && this.p.canAfford(this.p.stats_of(dropDef).cost) && this.time - (this.lastBuildAt[dropDef + far.id] ?? -99) > 20) {
       const spot = this.findSpot(dropDef, far.x, far.y, 2, 6, true);
       if (spot) {
@@ -621,7 +652,7 @@ export class AIController {
       want.push(['troop_center', wc >= 22 ? Math.min(this.d.maxProdPerType, 2) : 1]);
       want.push(['power_core', 2]);
       if (this.d.turrets) want.push(['turret', Math.min(this.d.turrets, Math.floor(wc / 15))]);
-      if (wc > 28) want.push(['spaceport', this.d.market ? 1 : 0]);
+      if (wc > 24) want.push(['spaceport', this.p.difficulty === 'easy' ? 0 : 1]);
     }
     if (era >= 3) {
       want.push(['temple', 1]);
@@ -638,6 +669,27 @@ export class AIController {
       want.push(['monument', this.d.monument && p.res.food > 900 && p.res.carbon > 900 && p.res.nova > 900 && p.res.ore > 900 ? 1 : n('monument')]);
       want.push(['fortress', 1]);
       want.push(['heavy_weapons', Math.min(this.d.maxProdPerType, 2)]);
+    }
+    // escalar la producción con la economía
+    if (era >= 2) {
+      const prodTarget = Math.min(10, 1 + Math.floor(wc / (this.p.difficulty === 'easy' ? 18 : 9)));
+      const weights = this.compositionWeights();
+      const share: Record<string, number> = {};
+      let tot = 0;
+      for (const k in weights) {
+        const id = this.classUnit(k as UnitClass);
+        if (!id) continue;
+        const b = PROD_BUILDING[k as UnitClass];
+        if (!b || p.isDisabled(b) || BUILDINGS[b].era > era) continue;
+        share[b] = (share[b] ?? 0) + (weights[k as UnitClass] ?? 0);
+        tot += weights[k as UnitClass] ?? 0;
+      }
+      const rich = p.res.food > 500 && p.res.carbon > 250;
+      for (const b in share) {
+        const want2 = Math.max(1, Math.round((share[b] / (tot || 1)) * prodTarget));
+        const cap = b === 'fortress' ? 1 : this.d.maxProdPerType + (rich ? 1 : 0);
+        want.push([b, Math.min(cap, want2)]);
+      }
     }
     // segundo centro de mando (expansión) en dificultad alta
     if (era >= 2 && this.d.workers >= 50 && wc >= 35 && n('command_center') < 2 && p.res.carbon > 300 && p.res.ore > 120) want.push(['command_center', 2]);
@@ -902,7 +954,7 @@ export class AIController {
       if (military.length > 4 + this.p.era * 2) return;
     }
     if (workers.length < 8 && !this.underAttack()) return;
-    if (this.p.era === 1 && !this.underAttack() && (workers.length < 20 || this.p.res.food < 200)) return;
+    if (this.p.era === 1 && !this.underAttack() && (workers.length < 22 || this.p.res.food < 350 || this.savingForEra)) return;
     const weights = this.compositionWeights();
     const counts: Partial<Record<UnitClass, number>> = {};
     for (const u of military) counts[u.ud!.cls] = (counts[u.ud!.cls] ?? 0) + 1;
@@ -910,6 +962,9 @@ export class AIController {
     const total = military.length + 1;
     const reserve: Record<ResourceType, number> = { food: 0, carbon: 0, nova: 0, ore: 0 };
     if (p.era >= 3 && !this.hasBuilding('fortress')) reserve.ore = 650;
+    if (this.time - this.needDropsite < 30) reserve.carbon = 110;
+    // reservar para granjas cuando la comida escasea
+    if (p.res.food < 150) reserve.carbon = Math.max(reserve.carbon, 120);
     for (const b of buildings) {
       if (!b.built || !b.bd!.trains || b.defId === 'command_center') continue;
       if (b.prodQueue.length >= 2) continue;
@@ -1038,13 +1093,22 @@ export class AIController {
         this.attacking = false;
         for (const u of military) w.issue(u, { type: 'attackMove', x: cx, y: cy }, false);
       }
+      // toque de alarma si el ataque supera a los defensores
+      const threatMil = threats.filter((u) => u.ud!.attack && u.ud!.cls !== 'worker');
+      if (this.p.difficulty !== 'easy' && threatMil.length >= 3 && dStr < tStr * 0.7) {
+        w.ringAlarm(this.pid, cx, cy, 11);
+        this.alarmAt = this.time;
+      }
+      // liberar a los refugiados de edificios ya seguros
+      if (this.p.alarm && this.time - this.alarmAt > 8) w.releaseAlarm(this.pid, true);
       // trabajadores se defienden en casos extremos contra pocas unidades
-      if (dStr < tStr * 0.5 && threats.length <= 3 && this.p.difficulty !== 'easy') {
+      if (dStr < tStr * 0.5 && threats.length <= 3 && this.p.difficulty !== 'easy' && !this.p.alarm) {
         const nearW = all.filter((u) => u.ud!.cls === 'worker' && Math.hypot(u.x - cx, u.y - cy) < 8);
         for (const u of nearW.slice(0, 6)) w.issue(u, { type: 'attack', targetId: threats[0].id }, false);
       }
       return;
     }
+    if (this.p.alarm && this.time - this.alarmAt > 6) w.releaseAlarm(this.pid, true);
     if (this.defending) {
       this.defending = false;
       // volver al punto de reunión
@@ -1231,12 +1295,15 @@ export class AIController {
   manageMarket(buildings: Entity[]) {
     if (!buildings.some((b) => b.built && b.defId === 'spaceport')) return;
     const p = this.p;
+    const w = this.w;
+    // vender excedentes
     for (const r of ['food', 'carbon', 'ore'] as const) {
-      if (p.res[r] > 1800 && p.res.nova < 400) this.w.marketSell(this.pid, r);
+      const limit = r === 'ore' ? (this.hasBuilding('fortress') || p.era < 3 ? 450 : 900) : 1400;
+      for (let k = 0; k < 3 && p.res[r] > limit; k++) w.marketSell(this.pid, r);
     }
-    if (p.res.nova > 1500) {
-      const low = (['food', 'carbon', 'ore'] as const).reduce((a, b) => (p.res[a] < p.res[b] ? a : b));
-      if (p.res[low] < 300) this.w.marketBuy(this.pid, low);
+    // comprar lo escaso con Nova sobrante
+    for (const r of ['food', 'carbon'] as const) {
+      for (let k = 0; k < 3 && p.res[r] < 200 && p.res.nova > 300 + w.market[r] * 1.3; k++) w.marketBuy(this.pid, r);
     }
   }
 

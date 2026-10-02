@@ -227,7 +227,7 @@ export class Hud {
     const sel = this.s.input.selectedEntities();
     const btns = this.computeButtons(sel);
     this.buttons = btns;
-    const key = btns.map((b) => (b ? b.title + (b.disabled ? 'd' : '') + (b.count ?? '') + (b.cooldown ? Math.ceil(b.cooldown) : '') + (b.active ? 'a' : '') + (b.cost && !this.me.canAfford(b.cost) ? 'u' : '') : '_')).join('|');
+    const key = btns.map((b) => (b ? b.title + (b.disabled ? 'd' : '') + (b.count ?? '') + (b.cooldown ? Math.ceil(b.cooldown) : '') + (b.active ? 'a' : '') + (b.cost && !this.me.canAfford(b.cost) ? 'u' : '') + (b.title.length) : '_')).join('|');
     if (key === this.cmdKey) return;
     this.cmdKey = key;
     clear(this.cmdPanel);
@@ -340,6 +340,7 @@ export class Hud {
         });
       }
       out[6] = { icon: svgIcon('stop', 'cmd'), title: 'Detener', desc: 'Cancela todas las órdenes.', action: () => input.stop() };
+      if (units.some((u) => u.ud!.tags.includes('infantry'))) out[8] = { icon: svgIcon('garrison', 'cmd'), title: 'Guarnecer', desc: 'Refugia la infantería en un Centro de Mando, Fortaleza o Torreta. Los guarnecidos disparan desde dentro y se curan.', active: input.mode === 'garrison', action: () => input.setMode('garrison') };
       // conversión
       if (units.some((u) => u.ud!.convert)) out[7] = { icon: svgIcon('convert', 'force'), title: 'Convertir', desc: 'Usa la Fuerza para poner una unidad enemiga a tu servicio. No funciona con héroes ni maestros.', active: input.mode === 'convert', action: () => input.setMode('convert') };
       // habilidades de héroes
@@ -423,6 +424,14 @@ export class Hud {
         });
         out[3] = { icon: svgIcon('trade', 'eco'), title: 'Tributos', desc: 'Envía recursos a tus aliados (panel de Diplomacia).', action: () => this.openDiplomacy() };
       }
+      if (b.bd!.garrison) {
+        out[11] = { icon: svgIcon('ungarrison', 'cmd'), title: `Desguarnecer (${b.garrison.length}/${b.bd!.garrison})`, desc: 'Libera a todas las unidades guarnecidas.', disabled: !b.garrison.length, reason: 'No hay unidades dentro', action: () => { for (const x of builds) w.ungarrison(x, true); } };
+      }
+      if (b.defId === 'command_center') {
+        out[12] = p.alarm
+          ? { icon: svgIcon('alarmOff', 'eco'), title: 'Volver al trabajo', desc: 'Los trabajadores salen de los refugios y retoman sus tareas.', action: () => { w.releaseAlarm(v); this.message('Los trabajadores vuelven al trabajo.', '#7dff9a'); } }
+          : { icon: svgIcon('alarm', 'mil'), title: 'Toque de alarma', desc: 'Todos los trabajadores cercanos se refugian en el Centro de Mando, Fortalezas y Torretas.', action: () => { const n = w.ringAlarm(v); audio.alert(); this.message(`¡Alarma! ${n} trabajadores buscan refugio.`, '#ff9a6a'); } };
+      }
       if (b.bd!.trains?.length || b.defId === 'fortress' || b.defId === 'temple') {
         out[13] = { icon: svgIcon('rallyPt', 'cmd'), title: 'Punto de reunión', desc: 'Clic derecho en el mapa con el edificio seleccionado para fijar dónde van las unidades nuevas.', active: input.mode === 'rally', action: () => input.setMode('rally') };
       }
@@ -441,7 +450,7 @@ export class Hud {
   private refreshSelection() {
     const sel = this.s.input.selectedEntities();
     const w = this.w;
-    const key = sel.map((e) => e.id + ':' + Math.round((e.hp / e.maxHp) * 50) + ':' + (e.prodQueue?.length ?? 0) + ':' + (e.prodQueue?.[0] ? Math.round((e.prodQueue[0].progress / e.prodQueue[0].total) * 40) : '') + ':' + Math.floor(e.carry) + ':' + Math.floor(e.amount) + ':' + e.defId + ':' + e.owner + (e.built ? 'b' : Math.round(e.progress * 40))).join(',');
+    const key = sel.map((e) => e.id + ':' + Math.round((e.hp / e.maxHp) * 50) + ':' + (e.prodQueue?.length ?? 0) + ':' + (e.prodQueue?.[0] ? Math.round((e.prodQueue[0].progress / e.prodQueue[0].total) * 40) : '') + ':' + Math.floor(e.carry) + ':' + Math.floor(e.amount) + ':' + e.defId + ':' + e.owner + ':' + (e.garrison?.length ?? 0) + (e.built ? 'b' : Math.round(e.progress * 40))).join(',');
     if (key === this.selKey) return;
     this.selKey = key;
     clear(this.selPanel);
@@ -512,6 +521,7 @@ export class Hud {
       if (e.bd?.needsPower) stats.appendChild(h('span', { style: `color:${e.powered ? '#6aff7a' : '#ff6a5a'}` }, e.powered ? '⚡ Con energía' : '⚡ Sin energía (50%)'));
       if (e.bd?.farm) stats.appendChild(h('span', null, h('span', { class: 'si' }, 'Alimento'), String(Math.floor(e.farmFood))));
       if (e.holocrons.length) stats.appendChild(h('span', { style: 'color:#6ac8ff' }, `Holocrones: ${e.holocrons.length}`));
+      if (e.bd?.garrison) stats.appendChild(h('span', null, h('span', { class: 'si' }, 'Guarnición'), `${e.garrison.length}/${e.bd.garrison}`));
       if (e.monumentTimer > 0) stats.appendChild(h('span', { style: 'color:#ffd23d' }, `Victoria en ${fmtTime(e.monumentTimer)}`));
       info.appendChild(stats);
       if (e.carry > 0 && e.carryType) info.appendChild(h('div', { class: 'carry' }, `Transporta ${Math.floor(e.carry)} de ${resLabel(e.carryType)}`));

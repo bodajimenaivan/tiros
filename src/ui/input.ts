@@ -7,7 +7,7 @@ import { ABILITIES } from '../data/units';
 import { audio } from '../audio/audio';
 import { settings } from './settings';
 
-export type Mode = 'none' | 'attackMove' | 'convert' | 'repair' | 'rally' | `ability:${string}` | 'place';
+export type Mode = 'none' | 'attackMove' | 'convert' | 'repair' | 'rally' | 'garrison' | `ability:${string}` | 'place';
 
 export class InputController {
   s: GameSession;
@@ -265,6 +265,10 @@ export class InputController {
       if (t && t.kind === 'building' && t.owner === this.viewer) {
         for (const u of units) if (u.ud!.canBuild) this.w.issue(u, { type: t.built ? 'repair' : 'build', targetId: t.id }, shift);
       } else audio.ui('error');
+    } else if (m === 'garrison') {
+      const t = target ? this.w.get(target) : undefined;
+      if (t && t.kind === 'building' && t.owner === this.viewer && t.bd!.garrison) this.w.commandGarrison(ids, t.id);
+      else audio.ui('error');
     } else if (m === 'rally') {
       for (const b of this.selectedEntities()) {
         if (b.kind === 'building' && b.owner === this.viewer) {

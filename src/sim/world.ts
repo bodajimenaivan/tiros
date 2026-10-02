@@ -149,7 +149,7 @@ export class World {
       p.startY = st.y;
       const cc = this.placeBuilding(p.id, 'command_center', st.x - 2, st.y - 2, true);
       if (cc) this.completeBuilding(cc, true);
-      const nWorkers = setup.startRes === 'deathmatch' ? 6 : 3;
+      const nWorkers = setup.startRes === 'deathmatch' ? 6 : 4;
       for (let k = 0; k < nWorkers; k++) {
         const a = (k / nWorkers) * Math.PI * 2 + 0.6;
         this.spawnUnit('worker', p.id, st.x + Math.cos(a) * 3.2, st.y + Math.sin(a) * 3.2);
@@ -224,7 +224,7 @@ export class World {
 
   /** ¿Puede `e` atacar a `t`? */
   hostile(e: Entity, t: Entity): boolean {
-    if (!t.alive || t.kind === 'resource' || t.kind === 'holocron') return false;
+    if (!t.alive || t.kind === 'resource' || t.kind === 'holocron' || t.garrisonedIn) return false;
     if (t.owner === 0) return !!t.ud && t.ud.cls === 'animal' && e.owner !== 0;
     if (e.owner === 0) return t.owner !== 0 && t.kind === 'unit';
     return this.isEnemy(e.owner, t.owner);
@@ -534,6 +534,7 @@ export class World {
         }
       }
       e.holocrons = [];
+      this.ungarrison(e, false);
       this.recomputePop(p);
       this.powerDirty = true;
       this.corpses.push(e);
@@ -573,7 +574,7 @@ export class World {
 
     // hash espacial de unidades
     this.unitHash.clear();
-    for (const u of this.units) if (u.alive) this.unitHash.insert(u);
+    for (const u of this.units) if (u.alive && !u.garrisonedIn) this.unitHash.insert(u);
 
     // caminos pendientes (presupuesto por tick)
     this.processPathQueue();
@@ -587,12 +588,16 @@ export class World {
       u.px = u.x;
       u.py = u.y;
       u.pangle = u.angle;
+      if (u.garrisonedIn) {
+        if (u.hp < u.maxHp) u.hp = Math.min(u.maxHp, u.hp + 0.6 * TICK);
+        continue;
+      }
       if (u.owner === 0) updateAnimal(this, u);
       else updateUnit(this, u);
     }
     separation(this);
     for (const u of this.units) {
-      if (!u.alive) continue;
+      if (!u.alive || u.garrisonedIn) continue;
       u.z = this.map.surfaceAt(u.x, u.y) + u.flyZ;
       if (!u.isAir && this.map.terrain[Math.floor(u.y) * this.map.w + Math.floor(u.x)] === T_SHALLOW && this.map.liquid !== 'ice')
         u.z = Math.max(u.z, this.map.waterLevel - 0.25);
@@ -1301,6 +1306,15 @@ export class World {
     if (movers.length) this.commandMove(movers, x, y, false, queue);
   }
 
+  commandGarrison(ids: number[], buildingId: number) {
+    const b = this.get(buildingId);
+    if (!b) return;
+    for (const id of ids) {
+      const u = this.get(id);
+      if (u && this.canGarrison(u, b)) this.issue(u, { type: 'garrison', targetId: b.id }, false);
+    }
+  }
+
   commandStop(ids: number[]) {
     for (const id of ids) {
       const e = this.get(id);
@@ -1351,6 +1365,102 @@ export class World {
       }
     }
     return placed;
+  }
+
+  // ─────────────────────────── Guarnición ───────────────────────────
+
+  garrisonSpace(b: Entity): number {
+    return (b.bd?.garrison ?? 0) - b.garrison.length;
+  }
+
+  canGarrison(u: Entity, b: Entity): boolean {
+    if (!b.alive || !b.built || b.kind !== 'building' || !b.bd!.garrison) return false;
+    if (!this.players[b.owner].isAlly(u.owner) || b.owner !== u.owner) return false;
+    if (!u.ud!.tags.includes('infantry')) return false;
+    return this.garrisonSpace(b) > 0;
+  }
+
+  enterGarrison(u: Entity, b: Entity) {
+    u.garrisonedIn = b.id;
+    b.garrison.push(u.id);
+    u.x = u.px = b.x;
+    u.y = u.py = b.y;
+    u.path = null;
+    u.queue = [];
+    u.order = null;
+    if (u.holocronId) this.dropHolocron(u);
+  }
+
+  /** Expulsa a todos los guarnecidos. resume: los trabajadores vuelven a su tarea */
+  ungarrison(b: Entity, resume = true) {
+    const ids = b.garrison;
+    b.garrison = [];
+    for (const id of ids) {
+      const u = this.entities.get(id);
+      if (!u || !u.alive) continue;
+      u.garrisonedIn = 0;
+      const spot = this.spawnPointFor(b) ?? this.findFreeSpot(b.x + b.size, b.y + b.size, 6) ?? { x: b.x + b.size, y: b.y };
+      u.x = u.px = spot.x;
+      u.y = u.py = spot.y;
+      u.homeX = u.x;
+      u.homeY = u.y;
+      if (resume && u.ud!.cls === 'worker' && u.lastResKind) {
+        const kind = u.lastResKind === 'carcass' || u.lastResKind === 'bush' ? 'food' : u.lastResKind;
+        const r = this.nearestResource(u.lastResX, u.lastResY, kind, 14, 0, u.owner);
+        if (r) this.setOrder(u, { type: 'gather', targetId: r.id });
+      } else if (resume && u.autoFarm && this.get(u.autoFarm)) this.setOrder(u, { type: 'gather', targetId: u.autoFarm });
+      else if (b.rallyX >= 0 && u.ud!.cls !== 'worker') this.setOrder(u, { type: 'move', x: b.rallyX, y: b.rallyY });
+    }
+  }
+
+  /** Toque de alarma: los trabajadores cercanos se refugian en edificios con guarnición */
+  ringAlarm(pid: number, cx?: number, cy?: number, radius = 1e9) {
+    const p = this.players[pid];
+    const shelters = this.buildings.filter((b) => b.alive && b.built && b.owner === pid && b.bd!.garrison);
+    if (!shelters.length) return 0;
+    let n = 0;
+    for (const u of this.units) {
+      if (!u.alive || u.owner !== pid || u.ud!.cls !== 'worker' || u.garrisonedIn) continue;
+      if (cx !== undefined && cy !== undefined && Math.hypot(u.x - cx, u.y - cy) > radius) continue;
+      let best: Entity | null = null;
+      let bd = 22;
+      for (const b of shelters) {
+        if (this.garrisonSpace(b) <= 0) continue;
+        const d = Math.hypot(b.x - u.x, b.y - u.y);
+        if (d < bd) {
+          bd = d;
+          best = b;
+        }
+      }
+      if (best) {
+        this.issue(u, { type: 'garrison', targetId: best.id }, false);
+        n++;
+      }
+    }
+    p.alarm = true;
+    return n;
+  }
+
+  releaseAlarm(pid: number, onlySafe = false) {
+    for (const b of this.buildings) if (b.alive && b.owner === pid && b.garrison.length) {
+      if (onlySafe && this.enemiesNear(pid, b.x, b.y, 12) > 0) continue;
+      const workers = b.garrison.filter((id) => this.entities.get(id)?.ud?.cls === 'worker');
+      if (!workers.length) continue;
+      // expulsar solo trabajadores
+      const keep = b.garrison.filter((id) => !workers.includes(id));
+      b.garrison = workers;
+      this.ungarrison(b, true);
+      b.garrison = keep;
+    }
+    for (const u of this.units) if (u.alive && u.owner === pid && u.order?.type === 'garrison' && u.ud!.cls === 'worker') this.setOrder(u, null);
+    this.players[pid].alarm = false;
+  }
+
+  enemiesNear(pid: number, x: number, y: number, r: number): number {
+    this.unitHash.query(x, y, r, this.tmp2);
+    let n = 0;
+    for (const u of this.tmp2) if (u.alive && this.isEnemy(pid, u.owner) && u.ud!.attack && u.ud!.cls !== 'worker') n++;
+    return n;
   }
 
   deleteEntity(pid: number, id: number) {
@@ -1563,7 +1673,7 @@ export class World {
   // ─────────────────────────── Consultas ───────────────────────────
 
   idleWorkers(pid: number): Entity[] {
-    return this.units.filter((u) => u.alive && u.owner === pid && u.ud!.cls === 'worker' && !u.order && u.idleTime > 0.5);
+    return this.units.filter((u) => u.alive && u.owner === pid && u.ud!.cls === 'worker' && !u.order && u.idleTime > 0.5 && !u.garrisonedIn);
   }
 
   nearestDropsite(e: Entity, res: ResourceType): Entity | null {

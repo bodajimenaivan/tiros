@@ -19,7 +19,7 @@ function def(u: UnitDef): UnitDef {
 // ───────────────────────── TRABAJADORES Y EXPLORACIÓN ─────────────────────────
 def({
   id: 'worker', name: 'Trabajador', desc: 'Recolecta recursos, construye y repara edificios.', cls: 'worker',
-  tags: ['infantry', 'worker'], era: 1, building: 'command_center', cost: { food: 50 }, time: 22, pop: 1,
+  tags: ['infantry', 'worker'], era: 1, building: 'command_center', cost: { food: 50 }, time: 20, pop: 1,
   hp: 25, speed: 0.85, los: 4, radius: 0.22, armor: { melee: 0, ranged: 0 },
   attack: { damage: 3, type: 'melee', range: 0.6, reload: 2 }, carry: 10, buildRate: 1, canGather: true, canBuild: true,
   model: 'worker',

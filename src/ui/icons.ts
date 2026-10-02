@@ -129,6 +129,10 @@ const P: Record<string, string> = {
   sell: '<circle cx="32" cy="32" r="18" fill="#6a2a2a"/><path d="M20 32 L44 32" stroke="#fff" stroke-width="5"/>',
   rallyPt: '<path d="M18 56 L18 10" stroke="#ccc" stroke-width="3"/><path d="M18 10 L50 18 L18 28Z" fill="#6aff7a"/>',
   convert: '<circle cx="32" cy="32" r="20" fill="none" stroke="#c8d8ff" stroke-width="3"/><path d="M20 32 Q32 18 44 32 Q32 46 20 32Z" fill="#c8d8ff"/>',
+  garrison: '<path d="M10 30 L32 12 L54 30 L54 54 L10 54Z" fill="#6a7686"/><path d="M32 22 L32 46 M22 36 L32 46 L42 36" stroke="#6aff7a" stroke-width="5" fill="none"/>',
+  ungarrison: '<path d="M10 30 L32 12 L54 30 L54 54 L10 54Z" fill="#6a7686"/><path d="M32 46 L32 22 M22 32 L32 22 L42 32" stroke="#ffd23d" stroke-width="5" fill="none"/>',
+  alarm: '<path d="M20 44 L20 30 Q20 16 32 16 Q44 16 44 30 L44 44 L50 50 L14 50Z" fill="#ffd23d"/><circle cx="32" cy="54" r="4" fill="#ffd23d"/><path d="M8 20 L14 24 M56 20 L50 24" stroke="#ff5a4a" stroke-width="3"/>',
+  alarmOff: '<path d="M20 44 L20 30 Q20 16 32 16 Q44 16 44 30 L44 44 L50 50 L14 50Z" fill="#7a8a7a"/><path d="M12 52 L52 12" stroke="#6aff7a" stroke-width="5"/>',
   wall: '<rect x="8" y="24" width="48" height="26" fill="#8a96a6"/><path d="M8 24 L8 18 L16 18 L16 24 M24 24 L24 18 L32 18 L32 24 M40 24 L40 18 L48 18 L48 24" fill="#8a96a6"/>',
 };
 

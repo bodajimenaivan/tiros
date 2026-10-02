@@ -95,7 +95,8 @@ export function fire(w: World, e: Entity, t: Entity) {
     applyHit(w, hit, t, t.x, t.y);
     return;
   }
-  const shots = atk.shots ?? 1;
+  let shots = atk.shots ?? 1;
+  if (e.bd && e.garrison.length) shots += Math.min(10, Math.ceil(e.garrison.length * 0.6));
   for (let k = 0; k < shots; k++) spawnProjectile(w, e, t, kind, hit, atk.projectileSpeed, -k * 0.12);
 }
 
