@@ -397,6 +397,11 @@ export class InputController {
       return;
     }
     if (this.s.hud.isModalOpen()) return;
+    if (k === 'F4') {
+      e.preventDefault();
+      this.s.hud.toggleScores();
+      return;
+    }
     if (k === 'F3' || k === 'Pause' || k === 'p' || k === 'P') {
       e.preventDefault();
       this.s.togglePause();

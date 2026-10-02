@@ -160,6 +160,11 @@ input[type=checkbox] { accent-color: var(--gold); width: 16px; height: 16px; }
 .minimap-wrap canvas { width: 220px; height: 180px; display: block; cursor: crosshair; }
 
 .idle-btns { position: absolute; left: 10px; bottom: 204px; display: flex; gap: 6px; pointer-events: auto; }
+.score-box { position: absolute; right: 10px; bottom: 204px; min-width: 150px; padding: 4px 8px; background: rgba(8, 12, 20, 0.62); border: 1px solid var(--line); font-size: 12px; pointer-events: none; }
+.score-row { display: flex; justify-content: space-between; gap: 14px; line-height: 17px; }
+.score-row .sc-name { font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 2px #000; }
+.score-row .sc-val { color: #e6e8ee; font-family: var(--font-title); font-size: 11px; }
+.score-row.out { opacity: 0.45; text-decoration: line-through; }
 .idle-btn { width: 40px; height: 34px; background: var(--panel2); border: 1px solid var(--line); color: var(--gold); font-family: var(--font-title); font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 2px; }
 .idle-btn:hover { border-color: var(--gold); }
 .idle-btn.has { animation: pulse 1.4s infinite; }

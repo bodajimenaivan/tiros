@@ -140,6 +140,32 @@ export class Hud {
     this.idleMilBtn = h('div', { class: 'idle-btn', title: 'Unidad militar ociosa (,)', onclick: () => this.s.input.selectIdleMilitary() }, h('img', { src: svgIcon('attackMove', 'mil'), style: 'width:22px;height:22px' }), h('span', null, '0'));
     const ib = h('div', { class: 'idle-btns' }, this.idleBtn, this.idleMilBtn);
     this.root.appendChild(ib);
+    this.scoreBox = h('div', { class: 'score-box', title: 'Puntuaciones (F4)' });
+    this.root.appendChild(this.scoreBox);
+  }
+
+  // ─────────────────────────── Marcador ───────────────────────────
+  private scoreBox!: HTMLElement;
+  private scoreT = 0;
+  showScores = true;
+
+  toggleScores() {
+    this.showScores = !this.showScores;
+    this.scoreBox.style.display = this.showScores ? '' : 'none';
+  }
+
+  private refreshScores() {
+    if (!this.showScores) return;
+    const w = this.w;
+    const ps = w.players.filter((p) => p.id).sort((a, b) => b.score() - a.score());
+    clear(this.scoreBox);
+    for (const p of ps) {
+      const row = h('div', { class: 'score-row' + (p.defeated ? ' out' : '') },
+        h('span', { class: 'sc-name', style: `color:${PLAYER_COLORS[p.color]?.css ?? '#fff'}` }, p.name),
+        h('span', { class: 'sc-val' }, p.defeated ? '—' : String(p.score())),
+      );
+      this.scoreBox.appendChild(row);
+    }
   }
 
   // ─────────────────────────── Mensajes ───────────────────────────
@@ -188,6 +214,11 @@ export class Hud {
     if (this.refreshT <= 0) {
       this.refreshT = 0.25;
       this.refreshSlow();
+    }
+    this.scoreT -= dt;
+    if (this.scoreT <= 0) {
+      this.scoreT = 1.5;
+      this.refreshScores();
     }
     this.drawOverlay();
     this.minimap.update(dt);

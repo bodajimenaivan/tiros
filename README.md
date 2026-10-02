@@ -111,6 +111,7 @@ Para avanzar de era hacen falta recursos y dos edificios distintos de la era act
 | Ir a la última alerta | Barra espaciadora |
 | Borrar la unidad o el edificio seleccionado | Supr |
 | Pausa | P, F3 o Pausa |
+| Mostrar u ocultar puntuaciones | F4 |
 | Velocidad de juego | `+` / `-` |
 | Menú | Esc o F10 |
 
