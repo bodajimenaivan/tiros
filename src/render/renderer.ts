@@ -18,6 +18,7 @@ import { buildBuildingModel } from './models/buildingModels';
 import { buildTree, buildResource, buildDecor, buildLandmark } from './models/natureModels';
 import type { ModelDef } from './models/builder';
 import { Effects } from './effects';
+import { makeEnvironment } from './environment';
 import { PLAYER_COLORS, GAIA_COLOR } from '../data/civs';
 import { BOLT_COLORS } from '../sim/combat';
 import { SABER } from '../data/units';
@@ -196,6 +197,7 @@ export class GameRenderer {
     this.scene.add(this.rally);
 
     this.setupPost();
+    this.scene.environment = makeEnvironment(this.renderer, this.w.planet.sky);
     const p = w.players[viewer];
     if (p) this.centerOn(p.startX, p.startY);
     else this.centerOn(w.N / 2, w.N / 2);

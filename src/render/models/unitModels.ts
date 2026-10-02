@@ -26,31 +26,32 @@ function infantry(style: CivStyle, role: 'trooper' | 'grenadier' | 'aa' | 'worke
   const accent = role === 'grenadier' ? 'stripe' : v === 1 ? 'pauldron' : 'shoulder';
   switch (style) {
     case 'imperial':
-      if (role === 'worker') return { body: 0x6a6e74, legs: 0x4a4e54, head: 'naboo', headColor: C.skin, weapon: 'tool', accent: 'belt', backpack: C.dgray };
-      return { body: WHITE, legs: WHITE, arms: WHITE, boots: WHITE, head: role === 'aa' ? 'aa' : 'storm', weapon, accent, bulk: v === 2 ? 1.12 : 1, backpack: role === 'grenadier' ? C.dgray : undefined };
+      if (role === 'worker') return { body: 0x5c6066, legs: 0x3e4248, vest: 0x34373c, arms: 0x5c6066, head: 'engineer', headColor: 0x3a3d42, weapon: 'tool', accent: 'belt', backpack: undefined };
+      return { body: WHITE, legs: WHITE, arms: WHITE, boots: WHITE, head: role === 'aa' ? 'aa' : 'storm', weapon, accent, bulk: v === 2 ? 1.12 : v === 1 ? 1.06 : 1, backpack: role === 'grenadier' || v === 1 ? 0x2c2e33 : undefined };
     case 'rebel':
-      if (role === 'worker') return { body: 0x8a7a5a, legs: 0x5a4a3a, head: 'rebel', weapon: 'tool', accent: 'belt', backpack: 0x6a5a3a };
-      return { body: v === 1 ? 0x5a6a3a : REB_VEST, legs: REB_PANTS, arms: v === 1 ? 0x4a5a32 : 0x8a7a5a, head: v === 0 ? 'rebelHelmet' : 'rebelHelmet', weapon, accent, bulk: v === 2 ? 1.1 : 1, backpack: v === 1 || role === 'grenadier' ? 0x5a4a30 : undefined };
+      if (role === 'worker') return { body: 0xa08458, legs: 0x5a4a36, vest: 0x6a4e30, arms: 0xa08458, head: 'engineer', headColor: 0x7a6a4a, weapon: 'tool', accent: 'belt', hair: 0x4a3420 };
+      if (v === 1) return { body: 0xd2cec4, legs: 0x9a968a, vest: 0xb8b2a4, arms: 0xd2cec4, head: 'hothHelmet', weapon, accent, bulk: 1.06, backpack: 0xb0aa9c };
+      return { body: 0x5e6444, legs: 0x4a4e36, vest: 0x6e6a48, arms: 0x5e6444, head: role === 'aa' ? 'hothHelmet' : 'rebelHelmet', headColor: 0x5a5a40, weapon, accent, bulk: v === 2 ? 1.1 : 1, backpack: role === 'grenadier' ? 0x5a4a30 : undefined };
     case 'republic':
-      if (role === 'worker') return { body: 0x9a9a98, legs: 0x6a6a68, head: 'bare', weapon: 'tool', accent: 'belt', backpack: C.dgray };
-      return { body: WHITE, legs: WHITE, arms: WHITE, boots: WHITE, head: role === 'aa' ? 'aa' : v === 0 ? 'clone' : 'clone2', weapon, accent: role === 'grenadier' ? 'stripe' : 'stripe', bulk: v === 2 ? 1.12 : 1 };
+      if (role === 'worker') return { body: 0x8a8c90, legs: 0x5a5c60, vest: 0x6a6c70, arms: 0x8a8c90, head: 'engineer', headColor: 0xd8c040, weapon: 'tool', accent: 'belt' };
+      return { body: WHITE, legs: WHITE, arms: WHITE, boots: WHITE, head: role === 'aa' ? 'aa' : v === 0 ? 'clone' : 'clone2', weapon, accent: 'stripe', bulk: v === 2 ? 1.12 : v === 1 ? 1.06 : 1, backpack: role === 'grenadier' || v === 1 ? 0xd0d0cc : undefined };
     case 'cis':
-      if (role === 'worker') return { body: 0x7a8088, head: 'droidWorker', headColor: 0x8a9098, weapon: 'tool', thin: true, accent: 'chest' };
-      if (v >= 1 && role === 'trooper') return { body: B2, head: 'b2', headColor: B2, weapon: 'wristBlasters', bulk: v === 2 ? 1.45 : 1.35, accent: 'chest', scale: 1.08 };
-      return { body: B1, head: 'b1', headColor: B1, weapon, thin: true, accent: role === 'grenadier' ? 'chest' : 'chest', boots: B1 };
+      if (role === 'worker') return { body: 0x6a7078, head: 'droidWorker', headColor: 0x7a8088, weapon: 'tool', thin: true, accent: 'chest' };
+      if (v >= 1 && role === 'trooper') return { body: B2, head: 'b2', headColor: B2, weapon: 'wristBlasters', bulk: v === 2 ? 1.12 : 1.05, accent: 'chest', scale: 1.08 };
+      return { body: B1, head: 'b1', headColor: B1, weapon, thin: true, accent: 'chest', boots: B1, backpack: role === 'grenadier' ? 0x8a7a50 : undefined };
     case 'tradefed':
-      if (role === 'worker') return { body: 0x8a6a4a, head: 'droidWorker', headColor: 0x9a7a5a, weapon: 'tool', thin: true, accent: 'chest' };
+      if (role === 'worker') return { body: 0x7a5e40, head: 'droidWorker', headColor: 0x8a6e50, weapon: 'tool', thin: true, accent: 'chest' };
       return { body: B1TF, head: v >= 1 ? 'oom' : 'b1', headColor: B1TF, weapon, thin: true, accent: 'chest', boots: B1TF, bulk: v === 2 ? 1.1 : 1 };
     case 'naboo':
-      if (role === 'worker') return { body: 0x8a6a4a, legs: 0x5a4a3a, head: 'bare', weapon: 'tool', accent: 'belt' };
-      if (v === 2) return { body: 0x1a2a6a, legs: 0x1a2a6a, head: 'naboo', weapon: 'heavy', accent: 'sash', cape: 0xa02a2a };
-      return { body: NABOO_GUARD, legs: 0x3a2a1a, arms: 0x6a4a2a, head: 'naboo', weapon, accent: v === 1 ? 'sash' : 'shoulder', boots: 0x2a1a10 };
+      if (role === 'worker') return { body: 0xc4b08a, legs: 0x5a4a3a, vest: 0x7a5434, arms: 0xc4b08a, head: 'rebel', hair: 0x6a4424, weapon: 'tool', accent: 'belt' };
+      if (v === 2) return { body: 0x23306a, legs: 0x23306a, vest: 0x1a2350, head: 'naboo', weapon: 'heavy', accent: 'sash', cape: 0xa02a2a };
+      return { body: 0x3a4466, legs: 0x4a3424, vest: NABOO_GUARD, arms: 0x6a4a2a, head: 'naboo', weapon, accent: v === 1 ? 'sash' : 'shoulder', boots: 0x2a1a10 };
     case 'gungan':
       if (role === 'worker') return { body: 0x8a6a4a, legs: GUNGAN, arms: GUNGAN, head: 'gungan', headColor: GUNGAN, weapon: 'tool', accent: 'belt' };
-      return { body: 0x7a5a3a, legs: GUNGAN, arms: GUNGAN, head: 'gungan', headColor: GUNGAN, weapon: role === 'trooper' ? 'atlatl' : weapon, accent: v >= 1 ? 'sash' : 'belt', bulk: v === 2 ? 1.1 : 1, skirt: 0x6a4a2a };
+      return { body: 0x6a4a2c, legs: GUNGAN, arms: GUNGAN, head: 'gungan', headColor: GUNGAN, weapon: role === 'trooper' ? 'atlatl' : weapon, accent: v >= 1 ? 'sash' : 'belt', bulk: v === 2 ? 1.1 : 1, skirt: 0x5a3e24 };
     case 'wookiee':
-      if (role === 'worker') return { body: 0x8a6a4a, head: 'wookiee', headColor: 0x8a6a4a, weapon: 'tool', fur: true, accent: 'sash', scale: 1.12, bulk: 1.15 };
-      return { body: FUR, head: 'wookiee', headColor: FUR, weapon: role === 'trooper' ? 'bowcaster' : weapon, fur: true, accent: 'sash', scale: 1.15 + v * 0.03, bulk: 1.2 };
+      if (role === 'worker') return { body: 0x9a7650, head: 'wookiee', headColor: 0x9a7650, weapon: 'tool', fur: true, accent: 'sash', scale: 1.12, bulk: 1.12 };
+      return { body: FUR, head: 'wookiee', headColor: FUR, weapon: role === 'trooper' ? 'bowcaster' : weapon, fur: true, accent: 'sash', scale: 1.15 + v * 0.03, bulk: 1.15 };
   }
 }
 
@@ -233,7 +234,7 @@ export function buildUnitModel(defId: string, style: CivStyle, saber: number): M
       } else if (style === 'gungan') {
         humanoid(b, { body: 0x7a5a3a, legs: GUNGAN, arms: GUNGAN, head: 'gungan', headColor: GUNGAN, weapon: 'saber', accent: 'sash', robe, saberColor: saber });
       } else {
-        humanoid(b, { body: dark ? 0x2a2a2e : 0xb8a888, legs: robe, head: master ? 'hood' : dark ? 'zabrak' : 'bare', weapon: 'saber', accent: master ? 'sash' : 'shoulder', robe, cape: master ? robe : undefined, saberColor: saber });
+        humanoid(b, { body: dark ? 0x26262a : 0xd2c4a4, legs: dark ? 0x1a1a1e : 0x6a5038, head: master ? 'hood' : dark ? 'zabrak' : 'bare', hair: dark ? undefined : 0x6a4a2a, weapon: 'saber', accent: master ? 'sash' : 'none', robe, cape: master ? robe : undefined, saberColor: saber, outfit: 'robe' });
       }
       break;
     }
@@ -297,9 +298,7 @@ function hero(b: MB, id: string, style: CivStyle) {
       humanoid(b, { body: 0x1a1a1a, head: 'bare', weapon: 'saber', accent: 'none', scale: 1.05, saberColor: sc, cape: 0x1a1a1a });
       break;
     case 'han':
-      humanoid(b, { body: 0xe8e0d0, legs: 0x2a3a5a, arms: 0xe8e0d0, head: 'rebel', weapon: 'pistol', accent: 'none', scale: 1.08 });
-      b.part('body');
-      b.box(0.2, 0.2, 0.28, 0.0, 0.52, 0, 0x1a1a1a);
+      humanoid(b, { body: 0xe8e0d0, legs: 0x2a3a5a, arms: 0xe8e0d0, vest: 0x1a1a1c, head: 'rebel', hair: 0x5a3a20, weapon: 'pistol', accent: 'none', scale: 1.08 });
       break;
     case 'leia':
       humanoid(b, { body: 0xf0f0f0, head: 'leia', weapon: 'pistol', accent: 'none', robe: 0xf0f0f0, scale: 1.0 });

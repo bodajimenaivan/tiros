@@ -2,10 +2,12 @@
 // máscara de color de equipo y emisión, organizadas en partes animables.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 export type AnimKind =
   | 'static' | 'legL' | 'legR' | 'legFL' | 'legFR' | 'legBL' | 'legBR' | 'legML' | 'legMR'
-  | 'armR' | 'armL' | 'saber' | 'saber2' | 'spin' | 'spinFast' | 'head' | 'tail' | 'wingL' | 'wingR' | 'bob' | 'recoil' | 'flag' | 'radar';
+  | 'armR' | 'armL' | 'saber' | 'saber2' | 'spin' | 'spinFast' | 'head' | 'tail' | 'wingL' | 'wingR' | 'bob' | 'recoil' | 'flag' | 'radar'
+  | 'shinL' | 'shinR' | 'aim';
 
 export interface PartOpts {
   team?: number; // 0..1 mezcla con color de equipo
@@ -19,6 +21,10 @@ export interface PartOpts {
   sz?: number;
   seg?: number;
   metal?: number;
+  /** Superficie (SURF.*) para la textura de detalle */
+  mat?: number;
+  /** Multiplicador de escala de la textura de detalle */
+  ms?: number;
 }
 
 export interface ModelPart {
@@ -62,6 +68,8 @@ export class MB {
   private offY = 0;
   private offZ = 0;
   private mirror = 1;
+  /** Superficie por defecto para las primitivas siguientes (null = plain) */
+  defMat: number | null = null;
 
   constructor() {
     this.cur = this.part('body');
@@ -76,6 +84,12 @@ export class MB {
     }
     this.cur = p;
     return p;
+  }
+
+  /** Fija la superficie por defecto de las siguientes primitivas */
+  surf(id: number | null) {
+    this.defMat = id;
+    return this;
   }
 
   use(name: string) {
@@ -108,33 +122,52 @@ export class MB {
     return this.add(g, x, y, z, color, o);
   }
 
-  private add(g: THREE.BufferGeometry, x: number, y: number, z: number, color: number, o: PartOpts = {}) {
+  private add(g: THREE.BufferGeometry, x: number, y: number, z: number, color: number, o: PartOpts = {}, defFlat = true) {
     tmpE.set(o.rx ?? 0, o.ry ?? 0, o.rz ?? 0, 'YXZ');
     tmpQ.setFromEuler(tmpE);
     tmpS.set(o.sx ?? 1, o.sy ?? 1, o.sz ?? 1);
     tmpV.set(x + this.offX, y + this.offY, z + this.offZ);
     tmpM.compose(tmpV, tmpQ, tmpS);
     g.applyMatrix4(tmpM);
-    let geo = g.index ? g.toNonIndexed() : g;
-    if (o.flat !== false) geo.computeVertexNormals();
-    // eliminar uv y añadir atributos
-    geo.deleteAttribute('uv');
+    g.deleteAttribute('uv');
+    g.deleteAttribute('uv1');
+    g.deleteAttribute('uv2');
+    let geo: THREE.BufferGeometry;
+    if (o.flat ?? defFlat) {
+      // sombreado plano: vértices propios por cara
+      geo = g.index ? g.toNonIndexed() : g;
+      geo.computeVertexNormals();
+    } else {
+      geo = g;
+      if (geo.attributes.normal === undefined) geo.computeVertexNormals();
+    }
     const n = geo.attributes.position.count;
+    // todas las geometrías indexadas (necesario para fusionarlas; las suaves comparten vértices)
+    if (!geo.index) {
+      const idx = n > 65535 ? new Uint32Array(n) : new Uint16Array(n);
+      for (let i = 0; i < n; i++) idx[i] = i;
+      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    }
     const col = new Float32Array(n * 3);
     const team = new Float32Array(n);
     const em = new Float32Array(n);
+    const sf = new Float32Array(n * 2);
     tmpColor.setHex(color);
+    const surfId = o.mat ?? this.defMat ?? (o.em ? 15 : 0);
+    const surfK = o.ms ?? 1;
     for (let i = 0; i < n; i++) {
       col[i * 3] = tmpColor.r;
       col[i * 3 + 1] = tmpColor.g;
       col[i * 3 + 2] = tmpColor.b;
       team[i] = o.team ?? 0;
       em[i] = o.em ?? 0;
+      sf[i * 2] = surfId;
+      sf[i * 2 + 1] = surfK;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     geo.setAttribute('teamMask', new THREE.BufferAttribute(team, 1));
     geo.setAttribute('emissive', new THREE.BufferAttribute(em, 1));
-    if (geo.attributes.normal === undefined) geo.computeVertexNormals();
+    geo.setAttribute('surf', new THREE.BufferAttribute(sf, 2));
     this.cur.geos.push(geo);
     return this;
   }
@@ -143,20 +176,61 @@ export class MB {
     return this.add(new THREE.BoxGeometry(w, h, d), x, y, z, color, o);
   }
   cyl(rt: number, rb: number, h: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
-    return this.add(new THREE.CylinderGeometry(rt, rb, h, o?.seg ?? 10, 1), x, y, z, color, o);
+    const seg = o?.seg ?? 10;
+    return this.add(new THREE.CylinderGeometry(rt, rb, h, seg, 1), x, y, z, color, o, seg < 8);
   }
   sphere(r: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
     const seg = o?.seg ?? 10;
-    return this.add(new THREE.SphereGeometry(r, seg, Math.max(4, Math.round(seg * 0.6))), x, y, z, color, { flat: false, ...o });
+    return this.add(new THREE.SphereGeometry(r, seg, Math.max(4, Math.round(seg * 0.6))), x, y, z, color, o, false);
   }
   cone(r: number, h: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
-    return this.add(new THREE.ConeGeometry(r, h, o?.seg ?? 10), x, y, z, color, o);
+    const seg = o?.seg ?? 10;
+    return this.add(new THREE.ConeGeometry(r, h, seg), x, y, z, color, o, seg < 8);
   }
   torus(r: number, tube: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
-    return this.add(new THREE.TorusGeometry(r, tube, 6, o?.seg ?? 16), x, y, z, color, { flat: false, ...o });
+    return this.add(new THREE.TorusGeometry(r, tube, 6, o?.seg ?? 16), x, y, z, color, o, false);
   }
   capsule(r: number, len: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
-    return this.add(new THREE.CapsuleGeometry(r, len, 3, o?.seg ?? 8), x, y, z, color, { flat: false, ...o });
+    return this.add(new THREE.CapsuleGeometry(r, len, 3, o?.seg ?? 8), x, y, z, color, o, false);
+  }
+  /** Caja con aristas redondeadas (sombreado suave) */
+  rbox(w: number, h: number, d: number, r: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
+    const rr = Math.min(r, w / 2 - 1e-4, h / 2 - 1e-4, d / 2 - 1e-4);
+    const minD = Math.min(w, h, d);
+    // piezas diminutas: caja normal; bisel simple (chaflán suave) o redondeo de 2 segmentos para las grandes
+    if (minD < 0.012 || rr < 0.002) return this.add(new THREE.BoxGeometry(w, h, d), x, y, z, color, o, true);
+    const seg = rr > 0.025 ? 2 : 1;
+    return this.add(new RoundedBoxGeometry(w, h, d, seg, Math.max(1e-4, rr)), x, y, z, color, o, false);
+  }
+  /** Elipsoide */
+  ell(rx: number, ry: number, rz: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
+    const seg = o?.seg ?? 12;
+    return this.add(new THREE.SphereGeometry(1, seg, Math.max(5, Math.round(seg * 0.6))), x, y, z, color, { ...o, sx: rx, sy: ry, sz: rz }, false);
+  }
+  /** Cápsula ahusada entre dos puntos (extremidades): radio r0 en a, r1 en b */
+  limb(a: [number, number, number], bp: [number, number, number], r0: number, r1: number, color: number, o?: PartOpts) {
+    const dx = bp[0] - a[0], dy = bp[1] - a[1], dz = bp[2] - a[2];
+    const len = Math.hypot(dx, dy, dz) || 1e-4;
+    const seg = o?.seg ?? 8;
+    // perfil: semiesfera inferior (r0), tronco cónico, semiesfera superior (r1)
+    const pts: THREE.Vector2[] = [];
+    const cap = 2;
+    for (let i = 0; i <= cap; i++) {
+      const t = (i / cap) * (Math.PI / 2);
+      pts.push(new THREE.Vector2(Math.sin(t) * r0, -Math.cos(t) * r0));
+    }
+    for (let i = 0; i <= cap; i++) {
+      const t = (i / cap) * (Math.PI / 2);
+      pts.push(new THREE.Vector2(Math.cos(t) * r1 + 1e-5, len + Math.sin(t) * r1));
+    }
+    const g = new THREE.LatheGeometry(pts, seg);
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(dx / len, dy / len, dz / len));
+    g.applyQuaternion(q);
+    const oo = { ...o };
+    delete oo.rx;
+    delete oo.ry;
+    delete oo.rz;
+    return this.add(g, a[0], a[1], a[2], color, oo, false);
   }
   /** Cuña / prisma triangular (útil para naves y techos) */
   wedge(w: number, h: number, d: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
@@ -197,8 +271,8 @@ export class MB {
   }
   /** Sólido de revolución */
   lathe(pts: [number, number][], x: number, y: number, z: number, color: number, o?: PartOpts) {
-    const g = new THREE.LatheGeometry(pts.map(([r, h]) => new THREE.Vector2(r, h)), o?.seg ?? 12);
-    return this.add(g, x, y, z, color, { flat: false, ...o });
+    const g = new THREE.LatheGeometry(pts.map(([r, h]) => new THREE.Vector2(Math.max(r, 1e-5), h)), o?.seg ?? 12);
+    return this.add(g, x, y, z, color, o, false);
   }
   /** Octaedro / cristal */
   crystal(r: number, h: number, x: number, y: number, z: number, color: number, o?: PartOpts) {

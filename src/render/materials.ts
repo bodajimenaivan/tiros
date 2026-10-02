@@ -1,6 +1,7 @@
 // Materiales compartidos: material de modelos instanciados con color de equipo,
 // emisión por vértice, destello de impacto, construcción holográfica y niebla.
 import * as THREE from 'three';
+import { surfaceTexture, surfaceProps, SURF_FRAG_PARS, SURF_VERT_PARS, SURF_VERT_MAIN, SURF_FRAG_COLOR, SURF_FRAG_ROUGH, SURF_FRAG_METAL, SURF_FRAG_NORMAL } from './surface';
 
 export interface ModelMaterialUniforms {
   uTime: { value: number };
@@ -8,6 +9,8 @@ export interface ModelMaterialUniforms {
 
 export const sharedUniforms = {
   uTime: { value: 0 },
+  /** 0 = sin texturas de detalle (calidad baja), 1 = completas */
+  uSurfDetail: { value: 1 },
 };
 
 /**
@@ -22,14 +25,20 @@ export function createModelMaterial(opts: { roughness?: number; metalness?: numb
     vertexColors: true,
     roughness: opts.roughness ?? 0.62,
     metalness: opts.metalness ?? 0.18,
-    envMapIntensity: 0.6,
+    envMapIntensity: 0.75,
   });
+  const surfTex = surfaceTexture();
+  const surfProps = surfaceProps();
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = sharedUniforms.uTime;
+    shader.uniforms.uSurfDetail = sharedUniforms.uSurfDetail;
+    shader.uniforms.uSurfTex = { value: surfTex };
+    shader.uniforms.uSurfProps = { value: surfProps };
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
         `#include <common>
+${SURF_VERT_PARS}
 attribute float teamMask;
 attribute float emissive;
 attribute vec4 instData;
@@ -46,12 +55,14 @@ uniform float uTime;`,
 #endif
 vEmissive = emissive;
 vInst = instData;
-vLocalY = position.y;`,
+vLocalY = position.y;
+${SURF_VERT_MAIN}`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
+${SURF_FRAG_PARS}
 varying float vEmissive;
 varying vec4 vInst;
 varying float vLocalY;
@@ -67,8 +78,15 @@ if (vInst.z < 0.999 && vLocalY > cutH + 0.02) discard;`,
         '#include <color_fragment>',
         `#include <color_fragment>
 // oclusión ambiental falsa: la base de los modelos queda más oscura (contacto con el suelo)
-diffuseColor.rgb *= mix(0.6, 1.0, smoothstep(0.0, 0.55, vLocalY));`,
+diffuseColor.rgb *= mix(0.6, 1.0, smoothstep(0.0, 0.55, vLocalY));
+${SURF_FRAG_COLOR}`,
       )
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+${SURF_FRAG_ROUGH}`)
+      .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
+${SURF_FRAG_METAL}`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+${SURF_FRAG_NORMAL}`)
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
@@ -88,7 +106,7 @@ if (vInst.z < 0.999) {
 gl_FragColor.rgb *= vInst.x;`,
       );
   };
-  mat.customProgramCacheKey = () => 'swModel2';
+  mat.customProgramCacheKey = () => 'swModel3';
   return mat;
 }
 

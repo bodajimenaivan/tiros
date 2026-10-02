@@ -7,6 +7,9 @@ export function isFullscreen(): boolean {
 
 export function enterFullscreen() {
   if (isFullscreen() || !document.documentElement.requestFullscreen) return;
+  // solo tras un clic o tecla del jugador (si no, el navegador lo rechaza con un aviso)
+  const ua = (navigator as any).userActivation;
+  if (ua && !ua.isActive) return;
   document.documentElement
     .requestFullscreen({ navigationUI: 'hide' })
     .then(() => {

@@ -13,7 +13,7 @@ export function speederBike(b: MB, body: number, rider: HumOpts | null, kind: 'b
     b.box(0.25, 0.08, 0.35, 0.05, 0.25, 0, body);
     b.sym((s) => b.cyl(0.06, 0.06, 0.25, 0.15, 0.35, s * 0.18, C.dgray, { rz: Math.PI / 2 }));
     b.box(0.08, 0.04, 0.3, 0.1, 0.68, 0, C.team, { team: 1 });
-    if (rider) b.offset(-0.02, 0.18, 0, () => humanoid(b, { ...rider, weapon: 'none' }));
+    if (rider) b.offset(-0.02, 0.18, 0, () => humanoid(b, { ...rider, weapon: 'none', seated: true }));
     return;
   }
   if (kind === 'flash') {
@@ -21,7 +21,7 @@ export function speederBike(b: MB, body: number, rider: HumOpts | null, kind: 'b
     b.box(0.3, 0.1, 0.3, 0.3, 0.42, 0, C.glass);
     b.box(0.6, 0.05, 0.4, -0.1, 0.4, 0, C.team, { team: 1 });
     b.sym((s) => b.cyl(0.05, 0.06, 0.4, -0.38, 0.32, s * 0.15, C.dgray, { rz: Math.PI / 2 }));
-    if (rider) b.offset(-0.1, 0.25, 0, () => humanoid(b, { ...rider, scale: 0.85 }));
+    if (rider) b.offset(-0.1, 0.25, 0, () => humanoid(b, { ...rider, scale: 0.85, seated: true }));
     return;
   }
   // moto 74-Z / BARC
@@ -33,7 +33,7 @@ export function speederBike(b: MB, body: number, rider: HumOpts | null, kind: 'b
   b.box(0.25, 0.04, 0.17, 0, 0.37, 0, C.team, { team: 1 });
   b.cyl(0.03, 0.03, 0.08, -L * 0.5, 0.34, 0, C.glowOrange, { em: 2, rz: Math.PI / 2 });
   if (kind === 'barc') b.sym((s) => b.cyl(0.05, 0.05, 0.4, 0.1, 0.27, s * 0.14, C.dgray, { rz: Math.PI / 2 }));
-  if (rider) b.offset(-0.08, 0.2, 0, () => humanoid(b, { ...rider, weapon: 'none', scale: 0.9 }));
+  if (rider) b.offset(-0.08, 0.2, 0, () => humanoid(b, { ...rider, weapon: 'none', scale: 0.9, seated: true }));
 }
 
 // ─────────────────────────── Tanques repulsores ───────────────────────────
@@ -226,7 +226,7 @@ export function atrt(b: MB, body: number, rider: HumOpts) {
   b.box(0.3, 0.25, 0.3, 0, hipY + 0.05, 0, body);
   b.box(0.14, 0.04, 0.32, 0.02, hipY + 0.2, 0, C.team, { team: 1 });
   b.cyl(0.035, 0.035, 0.4, 0.3, hipY - 0.02, 0, C.gun, { rz: Math.PI / 2 });
-  b.offset(-0.05, hipY - 0.12, 0, () => humanoid(b, { ...rider, weapon: 'none', scale: 0.9 }));
+  b.offset(-0.05, hipY - 0.12, 0, () => humanoid(b, { ...rider, weapon: 'none', scale: 0.9, seated: true }));
   for (const side of [1, -1]) {
     const z = side * 0.14;
     b.part(side > 0 ? 'legL' : 'legR', side > 0 ? 'legL' : 'legR', [0, hipY, z]);
@@ -378,7 +378,7 @@ export function beast(b: MB, o: BeastOpts) {
   }
   b.part('body');
   if (o.saddle) b.box(L * 0.35, 0.06, W * 0.7, 0, by + H * 0.42, 0, C.team, { team: 1 });
-  if (o.rider) b.offset(-L * 0.05, by + H * 0.25, 0, () => humanoid(b, { ...o.rider!, scale: (o.rider!.scale ?? 1) * 0.9 }));
+  if (o.rider) b.offset(-L * 0.05, by + H * 0.25, 0, () => humanoid(b, { ...o.rider!, scale: (o.rider!.scale ?? 1) * 0.9, seated: true }));
 }
 
 // ─────────────────────────── Naves ───────────────────────────

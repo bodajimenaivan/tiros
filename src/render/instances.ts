@@ -31,10 +31,10 @@ function partLocal(anim: AnimKind, a: AnimState, out: THREE.Matrix4, pivot: THRE
     case 'bob':
       return false;
     case 'legL':
-      rz = Math.sin(ph) * 0.55 * amp;
+      rz = Math.sin(ph) * 0.5 * amp;
       break;
     case 'legR':
-      rz = -Math.sin(ph) * 0.55 * amp;
+      rz = -Math.sin(ph) * 0.5 * amp;
       break;
     case 'legFL':
     case 'legBR':
@@ -62,6 +62,19 @@ function partLocal(anim: AnimKind, a: AnimState, out: THREE.Matrix4, pivot: THRE
       } else rz = -Math.sin(ph) * 0.25 * amp + Math.sin(a.time * 1.3 + a.seed) * 0.03;
       break;
     }
+    case 'shinL':
+      // rodilla: se dobla al adelantar la pierna (fase de balanceo)
+      rz = -Math.pow(Math.max(0, Math.cos(ph)), 1.5) * 0.85 * amp - 0.06 * amp;
+      break;
+    case 'shinR':
+      rz = -Math.pow(Math.max(0, -Math.cos(ph)), 1.5) * 0.85 * amp - 0.06 * amp;
+      break;
+    case 'aim':
+      // arma a dos manos: retroceso al disparar, balanceo leve al andar, golpe en cuerpo a cuerpo
+      if (a.attackT < 0.45 && a.melee) rz = -Math.sin((a.attackT / 0.45) * Math.PI) * 0.6;
+      else rz = (a.attackT < 1 ? Math.exp(-a.attackT * 12) * 0.22 : 0) - Math.sin(ph * 2) * 0.03 * amp + Math.sin(a.time * 1.3 + a.seed) * 0.015;
+      if (a.workT < 0.4) rz = -Math.abs(Math.sin(a.time * 7 + a.seed)) * 0.6 + 0.1;
+      break;
     case 'armL':
       if (a.workT < 0.4) rz = -Math.abs(Math.sin(a.time * 7 + a.seed + 1.2)) * 0.8 + 0.1;
       else rz = Math.sin(ph) * 0.3 * amp - Math.sin(a.time * 1.1 + a.seed) * 0.03;
@@ -176,10 +189,11 @@ export class ModelBatch {
     }
     for (const part of this.def.parts) {
       const g = new THREE.BufferGeometry();
-      for (const name of ['position', 'normal', 'color', 'teamMask', 'emissive']) {
+      for (const name of ['position', 'normal', 'color', 'teamMask', 'emissive', 'surf']) {
         const a = part.geometry.getAttribute(name);
         if (a) g.setAttribute(name, a);
       }
+      if (part.geometry.index) g.setIndex(part.geometry.index);
       g.setAttribute('instData', this.instData);
       g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
       const mesh = new THREE.InstancedMesh(g, this.material, cap);
