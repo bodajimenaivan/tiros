@@ -41,7 +41,7 @@ def({
   id: 'naboo', name: 'Naboo', biome: 'grassland', music: 'heroic',
   desc: 'Mundo idílico de praderas onduladas, lagos y ciudades de arquitectura clásica. Hogar de humanos y gungans.',
   sky: { top: 0x4a8fe0, bottom: 0xcfe6ff, fog: 0xbcd6ee, fogDensity: 0.0045, sun: 0xfff3d6, sunIntensity: 2.8, ambient: 0.6, hemiGround: 0x5a8a3a },
-  terrain: { base: 0x6fae3e, alt: 0x87bf4a, high: 0x9ccc5a, low: 0x5a9a34, cliff: 0x8a8070, path: 0xc8b48a },
+  terrain: { base: 0x5e9a38, alt: 0x76a842, high: 0x8aae52, low: 0x4e8a30, cliff: 0x8a8070, path: 0xb8a47a },
   water: { color: 0x2a7ab8, level: -0.6, kind: 'water', amount: 0.14, rivers: 2 },
   heightAmp: 3.0, heightScale: 0.03, cliffs: 0.15,
   forest: { density: 0.45, clusters: 9, tree: 'naboo_tree', tree2: 'round_tree', color: 0x4f8f2e, color2: 0x6aa83a },

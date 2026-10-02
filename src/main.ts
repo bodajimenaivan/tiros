@@ -58,7 +58,6 @@ function showMenu() {
 
 function launch(setup: GameSetup, after: () => void, onResult?: (win: boolean) => void) {
   clearApp();
-  audio.init();
   audio.setAmbience(setup.planet ? (await_planet_biome(setup.planet)) : '');
   const s = new GameSession(app, setup, (r) => {
     if (onResult) onResult(r.winner);

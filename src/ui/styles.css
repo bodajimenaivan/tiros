@@ -159,7 +159,7 @@ input[type=checkbox] { accent-color: var(--gold); width: 16px; height: 16px; }
   clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%, 0 18px); }
 .minimap-wrap canvas { width: 220px; height: 180px; display: block; cursor: crosshair; }
 
-.idle-btns { position: absolute; left: 338px; bottom: 152px; display: flex; gap: 6px; pointer-events: auto; }
+.idle-btns { position: absolute; left: 10px; bottom: 204px; display: flex; gap: 6px; pointer-events: auto; }
 .idle-btn { width: 40px; height: 34px; background: var(--panel2); border: 1px solid var(--line); color: var(--gold); font-family: var(--font-title); font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 2px; }
 .idle-btn:hover { border-color: var(--gold); }
 .idle-btn.has { animation: pulse 1.4s infinite; }

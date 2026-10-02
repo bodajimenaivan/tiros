@@ -155,12 +155,28 @@ export class World {
         this.spawnUnit('worker', p.id, st.x + Math.cos(a) * 3.2, st.y + Math.sin(a) * 3.2);
       }
       this.spawnUnit('scout', p.id, st.x + 3.5, st.y + 3.5);
+      let bonusPop = 0;
       for (const bu of ps.bonusUnits ?? []) {
         for (let k = 0; k < bu.count; k++) {
           const a = this.rng.next() * Math.PI * 2;
           const d = 5 + this.rng.next() * 3;
           const spot = this.findFreeSpot(st.x + Math.cos(a) * d, st.y + Math.sin(a) * d, 4);
-          if (spot) this.spawnUnit(p.resolveUnit(bu.id), p.id, spot.x, spot.y);
+          if (spot) {
+            this.spawnUnit(p.resolveUnit(bu.id), p.id, spot.x, spot.y);
+            bonusPop++;
+          }
+        }
+      }
+      // campamento: refugios gratuitos para alojar las tropas iniciales
+      for (let k = 0; k < Math.ceil(bonusPop / 5); k++) {
+        for (let tries = 0; tries < 30; tries++) {
+          const a = this.rng.next() * Math.PI * 2;
+          const d = 6 + this.rng.next() * 4;
+          const tx = Math.round(st.x + Math.cos(a) * d - 1), ty = Math.round(st.y + Math.sin(a) * d - 1);
+          if (!this.canPlace(p.id, 'shelter', tx, ty, true)) continue;
+          const sh = this.placeBuilding(p.id, 'shelter', tx, ty, true);
+          if (sh) this.completeBuilding(sh, true);
+          break;
         }
       }
       // era inicial

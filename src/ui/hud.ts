@@ -59,7 +59,7 @@ export class Hud {
   private modal: HTMLElement | null = null;
   page: 'main' | 'eco' | 'mil' = 'main';
   private cmdKey = '';
-  private selKey = '';
+  private selKey = '-';
   private refreshT = 0;
   buttons: (CmdButton | null)[] = [];
   private alerts: { x: number; y: number; t: number }[] = [];
@@ -502,7 +502,7 @@ export class Hud {
       const stats = h('div', { class: 'stats' });
       const def = e.ud ?? e.bd;
       if (def?.attack) {
-        stats.appendChild(h('span', null, h('span', { class: 'si' }, 'Ataque'), `${Math.round(st.damage)}${def.attack.shots ? '×' + def.attack.shots : ''}`));
+        stats.appendChild(h('span', null, h('span', { class: 'si' }, 'Ataque'), `${Math.round(st.damage)}${(def.attack.shots ?? 1) > 1 ? '×' + def.attack.shots : ''}`));
         if (def.attack.type === 'ranged') stats.appendChild(h('span', null, h('span', { class: 'si' }, 'Alcance'), st.range.toFixed(0)));
       }
       stats.appendChild(h('span', null, h('span', { class: 'si' }, 'Armadura'), `${Math.round(st.armorMelee)}/${Math.round(st.armorRanged)}`));

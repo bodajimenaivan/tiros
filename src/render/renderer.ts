@@ -174,7 +174,7 @@ export class GameRenderer {
     else if (pl.dust) this.effects.setWeather('dust');
 
     // ── Anillos de selección ──
-    const rg = new THREE.RingGeometry(0.88, 1.0, 32);
+    const rg = new THREE.RingGeometry(0.9, 1.0, 40);
     rg.rotateX(-Math.PI / 2);
     const rm = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false });
     this.rings = new THREE.InstancedMesh(rg, rm, 1024);
@@ -413,7 +413,7 @@ export class GameRenderer {
       const flash = Math.max(0, 1 - (gt - e.lastHitTime) * 5) * 0.25 + (this.hovered === e.id ? 0.12 : 0);
       bt.push(tmpM, this.teamColor(e.owner), null, vis === 2 ? 1 : 0.55, flash, e.built ? 1 : Math.max(0.02, e.progress), this.buildingAnim(e, gt));
       this.recordScreen(e, h + bt.def.height + 0.3, e.size * 0.6);
-      if (this.selected.has(e.id) || this.hovered === e.id) this.addRing(e.x, h + 0.08, e.y, e.size * 0.75, e.owner, this.selected.has(e.id));
+      if (this.selected.has(e.id) || this.hovered === e.id) this.addRing(e.x, h + 0.08, e.y, e.size * 0.68, e.owner, this.selected.has(e.id));
       // escudo y fuego
       if (e.built && e.bd!.shieldRadius && vis === 2) this.effects.shield(e.x, h, e.y, w.players[e.owner].stats_of(e.defId).shieldRadius);
       if (e.built && e.fireDamage > 0.45 && vis === 2 && this.frame % 3 === 0) {
@@ -576,7 +576,7 @@ export class GameRenderer {
     if (!e.isAir && w.map.liquid !== 'none' && w.map.liquid !== 'ice' && w.map.heightAt(x, y) < w.map.waterLevel) z = w.map.waterLevel - 0.22;
     let ang = e.pangle + angleDiff(e.pangle, e.angle) * alpha;
     let roll = 0, pitch = 0;
-    let scale = e.isAir ? 1.2 : ud.cls === 'hero' ? 1.3 : 1.25;
+    let scale = e.isAir ? 1.2 : ud.cls === 'hero' ? 1.3 : ud.cls === 'animal' ? 0.85 : 1.25;
     let bright = 1;
     let yoff = 0;
     if (e.isAir) {

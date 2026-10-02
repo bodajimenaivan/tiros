@@ -24,7 +24,7 @@ function baseKit(style: CivStyle): Kit {
     cis: [0x9a6a48, 0x6a4a34, 0x5a3a2a, 0x3a2a20, 0xff7a30, 0x2a1a10],
     tradefed: [0xa0906c, 0x6e5e44, 0x4e4434, 0x3a3428, 0xff9a40, 0x2a2010],
     naboo: [0xece2c8, 0xc8b890, 0x5a9a7a, 0x8a7a5a, 0xffd890, 0x2a3a50],
-    gungan: [0x7a9a7a, 0x5a7a6a, 0x8ac8d8, 0x4a6a5a, 0x8af0ff, 0x6ad0e8],
+    gungan: [0x7a9a7a, 0x5a7a6a, 0x7ab0c8, 0x4a6a5a, 0x8af0ff, 0x6ad0e8],
     wookiee: [0x8a6a3a, 0x6a4a2a, 0x5a7a3a, 0x4a3420, 0xffb050, 0x3a2a1a],
   };
   const [wall, wall2, roof, trim, light, glass] = P[style];
@@ -67,7 +67,7 @@ function baseKit(style: CivStyle): Kit {
           break;
         case 'gungan':
           b.cyl(Math.min(w, d) * 0.4, Math.min(w, d) * 0.5, h * 0.4, x, y + h * 0.2, z, c, { seg: 10 });
-          b.sphere(Math.min(w, d) * 0.55, x, y + h * 0.45, z, roof, { em: 0.35, seg: 14, sy: (h * 0.9) / Math.min(w, d) });
+          b.sphere(Math.min(w, d) * 0.55, x, y + h * 0.45, z, roof, { em: 0.12, seg: 14, sy: (h * 0.9) / Math.min(w, d) });
           b.torus(Math.min(w, d) * 0.45, 0.04, x, y + h * 0.38, z, C.team, { team: 1, rx: Math.PI / 2 });
           break;
         case 'wookiee':
@@ -100,7 +100,7 @@ function baseKit(style: CivStyle): Kit {
       }
     },
     dome(b, x, y, z, r) {
-      if (style === 'gungan') b.sphere(r, x, y, z, roof, { em: 0.35, seg: 14 });
+      if (style === 'gungan') b.sphere(r, x, y, z, roof, { em: 0.12, seg: 14 });
       else if (style === 'wookiee') b.cone(r * 1.2, r * 1.2, x, y + r * 0.5, z, roof, { seg: 8 });
       else b.sphere(r, x, y, z, style === 'naboo' ? roof : wall2, { sy: 0.65, seg: 14 });
     },
@@ -116,7 +116,7 @@ function baseKit(style: CivStyle): Kit {
           break;
         case 'gungan':
           b.cyl(r * 0.6, r * 0.8, h * 0.7, x, h * 0.35, z, wall, { seg: 8 });
-          b.sphere(r * 1.3, x, h * 0.8, z, roof, { em: 0.4, seg: 12 });
+          b.sphere(r * 1.3, x, h * 0.8, z, roof, { em: 0.12, seg: 12 });
           break;
         case 'naboo':
           b.cyl(r, r * 1.1, h, x, h / 2, z, wall, { seg: 12 });
@@ -181,7 +181,7 @@ export function buildBuildingModel(defId: string, style: CivStyle): ModelDef {
         b.box(1.22, 0.05, 0.1, 0, 0.92, 0, C.team, { team: 1 });
         lamp(b, k, 0.62, 0.65, 0.25, 0.04);
       } else if (style === 'gungan') {
-        b.sphere(0.6, 0, 0.45, 0, k.roof, { em: 0.35, seg: 12 });
+        b.sphere(0.6, 0, 0.45, 0, k.roof, { em: 0.12, seg: 12 });
         b.cyl(0.4, 0.5, 0.2, 0, 0.1, 0, k.wall);
         b.torus(0.45, 0.04, 0, 0.3, 0, C.team, { team: 1, rx: Math.PI / 2 });
       } else if (style === 'wookiee') {
@@ -483,9 +483,9 @@ function monument(b: MB, k: Kit, style: CivStyle, S: number) {
     }
     case 'gungan': {
       // Otoh Gunga: burbujas
-      b.sphere(1.6, 0, 1.8, 0, k.roof, { em: 0.45, seg: 18 });
-      b.sym((s) => b.sphere(0.9, s * 1.2, 1.1, s * 0.6, k.roof, { em: 0.45, seg: 14 }));
-      b.sphere(0.7, -0.6, 1.0, 1.2, k.roof, { em: 0.45, seg: 14 });
+      b.sphere(1.6, 0, 1.8, 0, k.roof, { em: 0.15, seg: 18 });
+      b.sym((s) => b.sphere(0.9, s * 1.2, 1.1, s * 0.6, k.roof, { em: 0.15, seg: 14 }));
+      b.sphere(0.7, -0.6, 1.0, 1.2, k.roof, { em: 0.15, seg: 14 });
       b.cyl(0.5, 0.9, 0.6, 0, 0.5, 0, k.wall, { seg: 12 });
       break;
     }
