@@ -333,6 +333,7 @@ export class Hud {
       const military = units.filter((u) => u.ud!.attack && !u.ud!.canBuild);
       if (military.length || units.some((u) => !u.ud!.canBuild)) {
         out[5] = { icon: svgIcon('attackMove', 'mil'), title: 'Ataque en movimiento', desc: 'Avanza hacia un punto atacando a todo enemigo en el camino.', active: input.mode === 'attackMove', action: () => input.setMode('attackMove') };
+        if (military.length) out[4] = { icon: svgIcon('patrol', 'mil'), title: 'Patrullar', desc: 'Las unidades van y vienen entre su posición y el punto elegido, atacando a los enemigos que encuentren.', active: input.mode === 'patrol', action: () => input.setMode('patrol') };
         const st = units[0].stance;
         const stances: [string, string, string][] = [['aggressive', 'Agresiva', 'Persigue y ataca a cualquier enemigo a la vista.'], ['defensive', 'Defensiva', 'Ataca enemigos cercanos y vuelve a su posición.'], ['standGround', 'Mantener posición', 'No se mueve; solo dispara a lo que esté a su alcance.'], ['passive', 'Pasiva', 'No ataca nunca.']];
         stances.forEach(([id, name, desc], i) => {

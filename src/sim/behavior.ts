@@ -255,6 +255,29 @@ export function updateUnit(w: World, e: Entity) {
       if (r !== 'moving') w.nextOrder(e);
       break;
     }
+    case 'patrol': {
+      if (w.time >= e.scanAt) {
+        e.scanAt = w.time + 0.4;
+        const t = findTarget(w, e, s.los);
+        if (t) {
+          e.queue.unshift({ ...o });
+          w.setOrder(e, { type: 'attack', targetId: t.id });
+          e.explicitTarget = false;
+          return;
+        }
+      }
+      const r = moveTo(w, e, o.x!, o.y!, s, undefined, 0.6);
+      if (r !== 'moving') {
+        // llegar a un extremo: dar la vuelta
+        const x = o.x!, y = o.y!;
+        o.x = o.x2;
+        o.y = o.y2;
+        o.x2 = x;
+        o.y2 = y;
+        e.path = null;
+      }
+      break;
+    }
     case 'follow': {
       const t = w.get(o.targetId!);
       if (!t) return w.nextOrder(e);

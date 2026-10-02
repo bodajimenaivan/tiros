@@ -100,6 +100,7 @@ Para avanzar de era hacen falta recursos y dos edificios distintos de la era act
 | Seleccionar todas las unidades iguales en pantalla | Doble clic (o Ctrl + clic) |
 | Mover, atacar, recolectar, reparar o entrar en guarnición | Clic derecho |
 | Encadenar órdenes | Mantener Mayúsculas al dar la orden |
+| Ataque en movimiento / Patrullar | Botones del panel y clic en el destino |
 | Mover la cámara | Flechas del teclado, ratón en los bordes, arrastrar con el botón central o clic en el minimapa |
 | Zoom | Rueda del ratón |
 | Rotar la cámara | Ctrl + rueda, o las teclas Inicio y Fin |

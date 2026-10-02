@@ -115,6 +115,7 @@ const P: Record<string, string> = {
   command: '<rect x="18" y="12" width="28" height="20" fill="#c8b07e"/><rect x="24" y="32" width="16" height="22" fill="#a89060"/><circle cx="32" cy="22" r="4" fill="#ff4a3a"/>',
   // órdenes
   stop: '<rect x="18" y="18" width="28" height="28" fill="#ff5a4a"/>',
+  patrol: '<path d="M14 24 H46" stroke="#ffd23d" stroke-width="4"/><path d="M46 16 L56 24 L46 32Z" fill="#ffd23d"/><path d="M50 42 H18" stroke="#9fd8ff" stroke-width="4"/><path d="M18 34 L8 42 L18 50Z" fill="#9fd8ff"/>',
   attackMove: '<path d="M12 52 L40 24" stroke="#ff5a4a" stroke-width="5"/><path d="M34 14 L52 14 L52 32Z" fill="#ff5a4a"/><circle cx="16" cy="48" r="4" fill="#fff"/>',
   delete: '<path d="M16 16 L48 48 M48 16 L16 48" stroke="#ff5a4a" stroke-width="6"/>',
   aggressive: '<path d="M14 50 L50 14" stroke="#ff5a4a" stroke-width="5"/><path d="M38 12 L52 12 L52 26Z" fill="#ff5a4a"/>',

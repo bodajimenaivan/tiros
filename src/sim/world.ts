@@ -1192,6 +1192,17 @@ export class World {
     });
   }
 
+  /** Patrulla entre la posición actual de cada unidad y el punto indicado, atacando lo que encuentre */
+  commandPatrol(ids: number[], x: number, y: number, queue: boolean) {
+    const units = ids.map((id) => this.get(id)).filter((e): e is Entity => !!e && e.kind === 'unit' && !!e.ud!.attack);
+    if (!units.length) return;
+    const slots = this.formation(units, x, y);
+    units.forEach((u, i) => {
+      const s = slots[i];
+      this.issue(u, { type: 'patrol', x: s.x, y: s.y, x2: u.x, y2: u.y }, queue);
+    });
+  }
+
   formation(units: Entity[], x: number, y: number): { x: number; y: number }[] {
     const n = units.length;
     if (n === 1) return [{ x, y }];

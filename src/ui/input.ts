@@ -7,7 +7,7 @@ import { ABILITIES } from '../data/units';
 import { audio } from '../audio/audio';
 import { settings } from './settings';
 
-export type Mode = 'none' | 'attackMove' | 'convert' | 'repair' | 'rally' | 'garrison' | `ability:${string}` | 'place';
+export type Mode = 'none' | 'attackMove' | 'patrol' | 'convert' | 'repair' | 'rally' | 'garrison' | `ability:${string}` | 'place';
 
 export class InputController {
   s: GameSession;
@@ -254,6 +254,10 @@ export class InputController {
       else this.w.commandMove(ids, g.x, g.y, true, shift);
       this.s.renderer.orderMarker(g.x, g.y, true);
       if (units[0]) audio.voice(this.w.players[this.viewer].civ.voice, 'attack', units[0].ud!);
+    } else if (m === 'patrol') {
+      this.w.commandPatrol(ids, g.x, g.y, shift);
+      this.s.renderer.orderMarker(g.x, g.y, true);
+      if (units[0]) audio.voice(this.w.players[this.viewer].civ.voice, 'move', units[0].ud!);
     } else if (m === 'convert') {
       const t = target ? this.w.get(target) : undefined;
       if (t && t.kind === 'unit' && this.w.isEnemy(this.viewer, t.owner)) {
