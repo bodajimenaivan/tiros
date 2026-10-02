@@ -82,6 +82,9 @@ export class AIController {
   lastThreats: Entity[] = [];
   hopelessSince = 0;
   needSiegeAt = -999;
+  blockedSince = 0;
+  savingSince = 0;
+  eraCooldownUntil = 0;
   defenders = new Set<number>();
   knownEnemyBuildings = new Map<number, { x: number; y: number; owner: number; defId: string }>();
   savingForEra = false;
@@ -167,6 +170,35 @@ export class AIController {
     this.manageHolocrons(units);
     if (this.p.difficulty !== 'easy' && this.thinkCount % 4 === 0) this.manageMarket(buildings);
     if (this.thinkCount % 6 === 0) this.manageRepairs(buildings, workers);
+    if (this.thinkCount % 5 === 2) this.manageFoundations(buildings);
+  }
+
+  /** Cimientos abandonados: reasignar constructores o eliminarlos si no se pueden terminar */
+  manageFoundations(buildings: Entity[]) {
+    const w = this.w;
+    const building = new Map<number, number>();
+    for (const u of w.units) {
+      if (!u.alive || u.owner !== this.pid || u.ud!.cls !== 'worker') continue;
+      const o = u.order;
+      if (o && (o.type === 'build' || o.type === 'repair') && o.targetId) building.set(o.targetId, (building.get(o.targetId) ?? 0) + 1);
+      for (const q of u.queue) if ((q.type === 'build' || q.type === 'repair') && q.targetId) building.set(q.targetId, (building.get(q.targetId) ?? 0) + 1);
+    }
+    let assigned = 0;
+    for (const b of buildings) {
+      if (b.built || b.bd!.farm || b.bd!.wall) continue;
+      if (building.get(b.id)) continue;
+      const age = this.time - (b.createdAt ?? 0);
+      if (age < 20) continue;
+      // sin progreso tras mucho tiempo: probablemente inaccesible -> eliminar y recuperar recursos
+      if (age > 240 && b.progress <= 0) {
+        w.deleteEntity(this.pid, b.id);
+        continue;
+      }
+      if (assigned >= 2 || this.threatsNearBase().length) continue;
+      const bs = this.pickBuilders(b.x, b.y, b.size >= 3 ? 2 : 1);
+      for (const u of bs) w.issue(u, { type: 'build', targetId: b.id }, false);
+      if (bs.length) assigned++;
+    }
   }
 
   /** Rendición cuando la situación es desesperada (como la IA de AoE2) */
@@ -672,6 +704,17 @@ export class AIController {
           break;
         }
       }
+      return;
+    }
+    // no ahorrar indefinidamente si el recurso que falta no llega (p. ej. sin Nova en el mapa)
+    if (this.time < this.eraCooldownUntil) {
+      this.savingForEra = false;
+      return;
+    }
+    if (!this.savingForEra) this.savingSince = this.time;
+    if (this.time - this.savingSince > 240) {
+      this.savingForEra = false;
+      this.eraCooldownUntil = this.time + 150;
       return;
     }
     this.savingForEra = true;
@@ -1322,10 +1365,20 @@ export class AIController {
             } else blocked++;
           }
           if (blocked) {
-            // solo quedan objetivos defendidos: esperar al asedio fuera de alcance
+            // solo quedan objetivos defendidos: esperar al asedio fuera de alcance...
+            if (!this.blockedSince) this.blockedSince = this.time;
             this.needSiegeAt = this.time;
-            for (const u of idle) if (!u.order) w.issue(u, { type: 'move', x: this.rallyX + w.rng.range(-3, 3), y: this.rallyY + w.rng.range(-3, 3) }, false);
-          }
+            const army = military.length;
+            // ...pero si el asedio no llega, concentrar todo el fuego en la defensa más débil
+            const weak = defs
+              .filter((d) => d.defId !== 'fortress' || army >= 45)
+              .sort((a, b) => a.hp - b.hp)[0];
+            if (weak && this.time - this.blockedSince > 100 && army >= 15) {
+              for (const u of military) if (!u.order || u.order.type === 'move') w.issue(u, { type: 'attack', targetId: weak.id }, false);
+            } else {
+              for (const u of idle) if (!u.order) w.issue(u, { type: 'move', x: this.rallyX + w.rng.range(-3, 3), y: this.rallyY + w.rng.range(-3, 3) }, false);
+            }
+          } else this.blockedSince = 0;
           return;
         }
       }
@@ -1469,6 +1522,9 @@ export class AIController {
       let limit = r === 'ore' ? (this.hasBuilding('fortress') || p.era < 3 ? 500 : 900) : r === 'food' ? 1300 : 1100;
       if (short.length && !short.includes(r)) limit -= 350;
       if (p.res.nova < reserve) limit -= 200;
+      // la Nova es el cuello de botella (asedio, héroes, eras): vender más agresivamente
+      const novaNeed = p.era >= 3 ? 450 : 250;
+      if (p.res.nova < novaNeed) limit = Math.min(limit, r === 'ore' ? 450 : 550);
       limit = Math.max(450, limit);
       for (let k = 0; k < 4 && p.res[r] > limit + 100; k++) if (!w.marketSell(this.pid, r)) break;
     }
