@@ -166,7 +166,13 @@ export function buildBuildingModel(defId: string, style: CivStyle): ModelDef {
       k.tower(b, -w * 0.32, w * 0.3, 0.22, 2.6);
       k.dome(b, 0.1, 1.55, -0.1, 0.55);
       antenna(b, k, w * 0.3, 0.9, w * 0.3, 0.9);
-      if (style !== 'gungan') b.cyl(0.35, 0.35, 0.06, -w * 0.32, 2.65, w * 0.3, C.dgray, { rx: 0.4 }); // antena parabólica
+      if (style !== 'gungan') {
+        // antena parabólica giratoria
+        b.part('radar', 'radar', [-w * 0.32, 2.62, w * 0.3]);
+        b.cyl(0.35, 0.05, 0.12, -w * 0.32 + 0.08, 2.72, w * 0.3, 0xd0d0d0, { rz: 0.9, seg: 12 });
+        b.cyl(0.015, 0.015, 0.22, -w * 0.32 + 0.16, 2.8, w * 0.3, C.dgray, { rz: 0.9, seg: 4 });
+        b.part('body');
+      }
       lamp(b, k, w * 0.42, 0.5, 0);
       lamp(b, k, 0, 0.5, w * 0.42);
       b.box(0.06, 0.55, 0.7, w * 0.42, 0.38, -w * 0.05, C.dark); // puerta
@@ -286,8 +292,11 @@ export function buildBuildingModel(defId: string, style: CivStyle): ModelDef {
       k.block(b, -0.1, 0.1, 0, w * 0.7, 1.0, w * 0.75);
       k.dome(b, -0.1, 1.15, 0, 0.6);
       b.cyl(0.03, 0.05, 0.7, w * 0.3, 1.0, w * 0.3, k.trim);
-      b.cyl(0.5, 0.05, 0.25, w * 0.3, 1.45, w * 0.3, 0xd8d8d8, { rx: -0.5, seg: 14 }); // parabólica
-      b.sphere(0.05, w * 0.36, 1.55, w * 0.25, k.light, { em: 2 });
+      // parabólica giratoria
+      b.part('radar', 'radar', [w * 0.3, 1.38, w * 0.3]);
+      b.cyl(0.5, 0.05, 0.25, w * 0.3, 1.45, w * 0.3, 0xd8d8d8, { rx: -0.5, seg: 14 });
+      b.sphere(0.05, w * 0.3, 1.58, w * 0.3 - 0.12, k.light, { em: 2 });
+      b.part('body');
       b.torus(0.3, 0.04, -0.1, 1.6, 0, k.light, { em: 1.6, rx: Math.PI / 2 });
       banner(b, w * 0.45, 0.1, -w * 0.45, 1.3);
       break;
@@ -297,6 +306,11 @@ export function buildBuildingModel(defId: string, style: CivStyle): ModelDef {
       b.torus(half * 0.75, 0.05, 0.2, 0.34, 0.2, k.light, { em: 1.5, rx: Math.PI / 2, seg: 24 });
       k.block(b, -w * 0.32, 0.1, -w * 0.32, 1.0, 1.3, 1.0, true);
       k.tower(b, -w * 0.38, -w * 0.38, 0.18, 2.4);
+      // radar de control de tráfico
+      b.part('radar', 'radar', [-w * 0.38, 2.45, -w * 0.38]);
+      b.box(0.08, 0.12, 0.7, -w * 0.38, 2.5, -w * 0.38, 0xd0d0d0);
+      b.box(0.04, 0.04, 0.6, -w * 0.38 + 0.05, 2.52, -w * 0.38, k.light, { em: 1.6 });
+      b.part('body');
       // nave aparcada (carguero)
       b.box(1.0, 0.3, 0.7, 0.3, 0.6, 0.3, 0xb8b4a8);
       b.cyl(0.35, 0.35, 0.3, 0.3, 0.6, 0.3, 0xb8b4a8, { seg: 12 });

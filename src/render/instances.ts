@@ -86,6 +86,9 @@ function partLocal(anim: AnimKind, a: AnimState, out: THREE.Matrix4, pivot: THRE
     case 'spinFast':
       ry = a.time * 8;
       break;
+    case 'radar':
+      ry = a.time * 0.7 + a.seed;
+      break;
     case 'head':
       ry = Math.sin(a.time * 0.5 + a.seed) * 0.15;
       break;

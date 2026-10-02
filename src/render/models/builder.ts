@@ -5,7 +5,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 export type AnimKind =
   | 'static' | 'legL' | 'legR' | 'legFL' | 'legFR' | 'legBL' | 'legBR' | 'legML' | 'legMR'
-  | 'armR' | 'armL' | 'saber' | 'saber2' | 'spin' | 'spinFast' | 'head' | 'tail' | 'wingL' | 'wingR' | 'bob' | 'recoil' | 'flag';
+  | 'armR' | 'armL' | 'saber' | 'saber2' | 'spin' | 'spinFast' | 'head' | 'tail' | 'wingL' | 'wingR' | 'bob' | 'recoil' | 'flag' | 'radar';
 
 export interface PartOpts {
   team?: number; // 0..1 mezcla con color de equipo
