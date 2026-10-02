@@ -64,10 +64,14 @@ export function hoverTank(b: MB, o: TankOpts) {
     });
   }
   switch (o.shape ?? 'flat') {
-    case 'wedge':
-      b.box(L * 0.75, H * 0.5, W, -L * 0.1, baseY + H * 0.25, 0, o.body);
-      b.wedge(W, H * 0.5, L * 0.4, L * 0.38, baseY, 0, o.body, { ry: Math.PI / 2, sy: 1 });
+    case 'wedge': {
+      // casco con flancos inclinados y morro en cuña
+      const pr: [number, number][] = [[-W * 0.42, -H * 0.25], [W * 0.42, -H * 0.25], [W * 0.5, H * 0.02], [W * 0.34, H * 0.25], [-W * 0.34, H * 0.25], [-W * 0.5, H * 0.02]];
+      b.prism(pr, L * 0.72, -L * 0.12, baseY + H * 0.25, 0, o.body, { bevel: 0.025 });
+      b.taper(L * 0.4, H * 0.5, W, 0.35, 0.75, L * 0.42, baseY + H * 0.2, 0, o.body);
+      b.rbox(L * 0.3, 0.05, W * 0.5, 0.015, -L * 0.2, baseY + H * 0.52, 0, trim, { mat: SURF.grate });
       break;
+    }
     case 'round':
       b.sphere(W * 0.55, 0, baseY + H * 0.3, 0, o.body, { sx: L / W, sy: H / W, seg: 12 });
       break;
@@ -81,9 +85,12 @@ export function hoverTank(b: MB, o: TankOpts) {
       b.box(0.1, H * 0.6, W * 0.7, L * 0.5, baseY + H * 0.4, 0, trim);
       b.sym((s) => b.sphere(0.12, L * 0.38, baseY + H * 0.7, s * W * 0.2, C.glowOrange, { em: 1.2 }));
       break;
-    default:
-      b.box(L, H * 0.5, W, 0, baseY + H * 0.25, 0, o.body);
-      b.box(L * 0.8, H * 0.15, W * 0.85, -L * 0.05, baseY + H * 0.55, 0, o.body);
+    default: {
+      const pr: [number, number][] = [[-W * 0.44, -H * 0.25], [W * 0.44, -H * 0.25], [W * 0.5, H * 0.05], [W * 0.4, H * 0.25], [-W * 0.4, H * 0.25], [-W * 0.5, H * 0.05]];
+      b.prism(pr, L * 0.85, -L * 0.05, baseY + H * 0.25, 0, o.body, { bevel: 0.025 });
+      b.taper(L * 0.2, H * 0.5, W, 0.6, 0.85, L * 0.46, baseY + H * 0.25, 0, o.body);
+      b.rbox(L * 0.8, H * 0.15, W * 0.78, 0.03, -L * 0.05, baseY + H * 0.55, 0, o.body);
+    }
   }
   // detalles
   b.box(L * 0.5, 0.04, W * 1.02, -L * 0.15, baseY + H * 0.45, 0, C.team, { team: 1 });
@@ -103,11 +110,11 @@ export function hoverTank(b: MB, o: TankOpts) {
       b.cyl(0.05, 0.05, L * 0.55, L * 0.32, ty + 0.04, 0, cannon, { rz: Math.PI / 2 });
       break;
     case 'twin':
-      b.box(W * 0.5, H * 0.25, W * 0.5, 0, ty, 0, o.body);
+      b.taper(W * 0.55, H * 0.25, W * 0.5, 0.7, 0.8, 0, ty, 0, o.body);
       b.sym((s) => b.cyl(0.04, 0.04, L * 0.5, L * 0.3, ty + 0.04, s * 0.09, cannon, { rz: Math.PI / 2 }));
       break;
     case 'big':
-      b.box(L * 0.35, H * 0.3, W * 0.5, -L * 0.05, ty, 0, o.body);
+      b.taper(L * 0.38, H * 0.3, W * 0.52, 0.7, 0.8, -L * 0.05, ty, 0, o.body);
       b.cyl(0.08, 0.08, L * 0.7, L * 0.38, ty + 0.05, 0, cannon, { rz: Math.PI / 2 });
       b.cyl(0.1, 0.1, 0.12, L * 0.72, ty + 0.05, 0, C.dgray, { rz: Math.PI / 2 });
       break;
