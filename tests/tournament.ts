@@ -11,6 +11,8 @@ const seeds = Number(process.argv[2] ?? 1);
 const firstSeed = Number(process.argv[3] ?? 0);
 for (let s = firstSeed; s < firstSeed + seeds; s++)
 for (let i = 0; i < civs.length; i++) for (let j = i + 1; j < civs.length; j++) {
+  // ONLY=civ: solo las partidas de esa civilización
+  if (process.env.ONLY && civs[i] !== process.env.ONLY && civs[j] !== process.env.ONLY) continue;
   const a = s % 2 ? civs[j] : civs[i], b = s % 2 ? civs[i] : civs[j];
   const planet = planets[(n++) % planets.length];
   const w = new World({ planet, size: 'small', seed: 1000 + n * 17 + s, startRes: 'standard', startEra: 1, popMax: 200, victory: 'conquest', reveal: 'normal', lockedTeams: true,

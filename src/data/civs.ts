@@ -124,6 +124,7 @@ def({
   desc: 'Un imperio mercantil respaldado por ejércitos droide. Economía de hierro y droidekas imparables.',
   bonuses: [
     { text: 'Trabajadores un 15% más baratos.', mods: [{ target: { cls: ['worker'] }, stat: 'cost', mul: 0.85 }] },
+    { text: 'Droides de combate (soldados) un 10% más baratos.', mods: [{ target: { cls: ['trooper'] }, stat: 'cost', mul: 0.9 }] },
     { text: 'Mechs de asalto +1/+1 de armadura.', mods: [{ target: { cls: ['assaultMech'] }, stat: 'armorMelee', add: 1 }, { target: { cls: ['assaultMech'] }, stat: 'armorRanged', add: 1 }] },
     { text: 'Recolección de mineral +15% y de Nova +5%.', mods: [{ target: { player: true }, stat: 'gatherOre', mul: 1.15 }, { target: { player: true }, stat: 'gatherNova', mul: 1.05 }] },
     { text: 'Comisión de comercio reducida a la mitad.', mods: [{ target: { player: true }, stat: 'tradeFee', mul: 0.5 }] },
