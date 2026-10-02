@@ -6,7 +6,7 @@ const planet = process.argv[4] ?? 'tatooine';
 const seed = Number(process.argv[5] ?? 1018);
 const at = Number(process.argv[6] ?? 56);
 const w = new World({ planet, size: 'small', seed, startRes: 'standard', startEra: 1, popMax: 200, victory: 'conquest', reveal: 'normal', lockedTeams: true,
-  players: [{ name: civA, civ: civA, color: 0, team: 1, human: false, difficulty: 'hard' }, { name: civB, civ: civB, color: 1, team: 2, human: false, difficulty: 'hard' }] });
+  players: [{ name: civA, civ: civA, color: 0, team: 1, human: false, difficulty: (process.env.DIFF_A as any) ?? 'hard' }, { name: civB, civ: civB, color: 1, team: 2, human: false, difficulty: 'hard' }] });
 const ais = attachAI(w);
 for (let t = 0; t < 20 * 60 * at && !w.gameOver; t++) { w.step(); w.events.length = 0; }
 for (const ai of ais) {
@@ -19,7 +19,12 @@ for (const ai of ais) {
   const ord: Record<string, number> = {};
   for (const u of mil) { const k = (u.defId) + ':' + (u.order?.type ?? 'none') + (u.path ? 'P' : '') + (u.pathPending ? 'Q' : ''); ord[k] = (ord[k] ?? 0) + 1; }
   console.log(' mil orders', JSON.stringify(ord));
-  for (const u of mil.slice(0, 6)) console.log(`   ${u.defId} @${u.x.toFixed(1)},${u.y.toFixed(1)} order=${JSON.stringify(u.order)} target=${u.targetId} stuck=${u.stuckTime?.toFixed?.(1)}`);
+  for (const u of mil.slice(0, 6)) {
+    const t = u.order?.targetId ? w.get(u.order.targetId) : null;
+    let nd = 99, nn = '';
+    for (const b of w.buildings) if (b.alive && b.owner !== a.pid && b.bd!.attack) { const d = Math.hypot(b.x - u.x, b.y - u.y); if (d < nd) { nd = d; nn = b.defId; } }
+    console.log(`   ${u.defId} @${u.x.toFixed(1)},${u.y.toFixed(1)} order=${u.order?.type} tgt=${t ? t.defId + '@' + t.x.toFixed(0) + ',' + t.y.toFixed(0) + ' hp' + Math.round(t.hp) : '-'} nearestDef=${nn} ${nd.toFixed(1)}`);
+  }
   const bl = w.buildingsOf(a.pid);
   const cnt: Record<string, number> = {};
   for (const b of bl) cnt[b.defId] = (cnt[b.defId] ?? 0) + 1;

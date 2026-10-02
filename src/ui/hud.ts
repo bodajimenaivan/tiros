@@ -200,7 +200,7 @@ export class Hud {
     const counts: Record<string, number> = { food: 0, carbon: 0, nova: 0, ore: 0 };
     let idle = 0, idleMil = 0;
     for (const u of w.units) {
-      if (!u.alive || u.owner !== v) continue;
+      if (!u.alive || u.owner !== v || u.garrisonedIn) continue;
       const ud = u.ud!;
       if (ud.cls === 'worker') {
         if (!u.order) idle++;

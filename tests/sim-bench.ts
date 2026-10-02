@@ -18,7 +18,7 @@ const setup: GameSetup = {
   planet, size: (process.env.SIZE as any) ?? 'small', seed, startRes: 'standard', startEra: 1, popMax: 200, victory: 'conquest', reveal: 'normal', lockedTeams: true,
   players: [
     { name: 'A-' + civA, civ: civA, color: 0, team: 1, human: false, difficulty: diff },
-    { name: 'B-' + civB, civ: civB, color: 1, team: 2, human: false, difficulty: diff },
+    { name: 'B-' + civB, civ: civB, color: 1, team: 2, human: false, difficulty: (process.env.DIFF_B as any) ?? diff },
   ],
 };
 const t0 = Date.now();

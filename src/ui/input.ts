@@ -471,7 +471,7 @@ export class InputController {
   }
 
   selectIdleMilitary() {
-    const idle = this.w.units.filter((u) => u.alive && u.owner === this.viewer && !u.order && u.ud!.attack && u.ud!.cls !== 'worker' && u.ud!.cls !== 'scout');
+    const idle = this.w.units.filter((u) => u.alive && u.owner === this.viewer && !u.order && !u.garrisonedIn && u.ud!.attack && u.ud!.cls !== 'worker' && u.ud!.cls !== 'scout');
     if (!idle.length) return;
     this.select(idle.map((u) => u.id));
     const u = idle[0];

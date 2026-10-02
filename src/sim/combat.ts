@@ -257,10 +257,34 @@ export function damageEntity(w: World, t: Entity, dmg: number, attacker: Entity 
   if (t.hp <= 0) kill(w, t, attacker, attackerOwner);
 }
 
+/** Daño efectivo aproximado de una unidad contra un edificio (armadura + bonus) */
+export function effVsBuilding(w: World, e: Entity, b: Entity): number {
+  const atk = e.ud?.attack;
+  if (!atk) return 0;
+  const dmg = w.players[e.owner].stats_of(e.defId).damage;
+  const bs = w.players[b.owner].stats_of(b.defId);
+  const tags = b.bd!.tags;
+  let bonus = 0;
+  if (atk.bonus) for (const k in atk.bonus) if (k === 'building' || tags.includes(k as Tag)) bonus += atk.bonus[k as Tag]!;
+  return Math.max(0, dmg - (atk.type === 'melee' ? bs.armorMelee : bs.armorRanged)) + bonus;
+}
+
 function retaliate(w: World, t: Entity, attacker: Entity) {
   const ud = t.ud!;
   if (t.owner === 0) return;
   if (!w.hostile(t, attacker)) return;
+  // no contestar a defensas a las que apenas se hace daño; la IA se aparta de su alcance
+  if (attacker.kind === 'building' && ud.cls !== 'worker' && effVsBuilding(w, t, attacker) <= 2) {
+    if (!w.players[t.owner].human && (!t.order || t.order.type === 'attackMove' || t.order.type === 'move')) {
+      const dx = t.x - attacker.x, dy = t.y - attacker.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const r = w.players[attacker.owner].stats_of(attacker.defId).range + 2.5;
+      const fx = attacker.x + (dx / d) * (r + 1), fy = attacker.y + (dy / d) * (r + 1);
+      if (t.order && t.order.type === 'attackMove') t.queue.length = 0;
+      w.setOrder(t, { type: 'move', x: Math.max(1, Math.min(w.N - 2, fx)), y: Math.max(1, Math.min(w.N - 2, fy)) });
+    }
+    return;
+  }
   if (ud.cls === 'worker') {
     // los trabajadores se defienden de animales
     if (attacker.owner === 0 && !t.order) w.setOrder(t, { type: 'attack', targetId: attacker.id });

@@ -11,20 +11,67 @@ import { createModelMaterial, sharedUniforms } from '../render/materials';
 import { Noise2D } from '../core/noise';
 import { glowSprite } from '../render/textures';
 
+/** Casco en forma de daga: proa en +X, popa en -X, cresta superior e inferior */
+function dagger(L: number, W: number, top: number, bot: number): THREE.BufferGeometry {
+  const n = [L / 2, 0, 0];
+  const rl = [-L / 2, 0, W / 2], rr = [-L / 2, 0, -W / 2];
+  const rt = [-L / 2, top, 0], rb = [-L / 2, -bot, 0];
+  const tris = [
+    n, rt, rl, n, rr, rt, // cubierta superior
+    n, rl, rb, n, rb, rr, // casco inferior
+    rl, rt, rb, rt, rr, rb, // popa
+  ];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(tris.flat(), 3));
+  return g;
+}
+
 function starDestroyer() {
   const b = new MB();
   b.part('body');
-  const G = 0xb8bcc4, D = 0x7a7e86;
-  b.wedge(3.2, 0.5, 6.0, 0, 0, 0, G, { ry: Math.PI / 2 });
-  b.wedge(2.6, 0.35, 5.0, -0.3, 0.45, 0, D, { ry: Math.PI / 2 });
-  b.box(1.4, 0.5, 0.9, -1.8, 0.85, 0, G);
-  b.box(0.7, 0.35, 1.4, -2.0, 1.25, 0, D);
-  b.sym((s) => b.sphere(0.13, -2.0, 1.55, s * 0.4, D));
-  b.box(0.2, 0.6, 0.15, -2.0, 1.45, 0, D);
+  const G = 0xaab0ba, D = 0x6e737c, K = 0x3a3e46;
+  // casco principal y superestructura escalonada
+  b.mesh(dagger(8, 4.6, 0.55, 0.7), 0, 0, 0, G);
+  b.mesh(dagger(6.2, 3.3, 0.95, 0.1), -0.9, 0.05, 0, D);
+  b.mesh(dagger(4.2, 2.1, 1.3, 0.1), -1.9, 0.1, 0, G);
+  // zanja lateral oscura
+  b.mesh(dagger(7.9, 4.62, 0.06, 0.06), 0, -0.02, 0, K);
+  // bloques de la superestructura
+  b.box(1.5, 0.45, 1.6, -3.0, 1.15, 0, D);
+  b.box(1.1, 0.4, 1.1, -3.1, 1.55, 0, G);
+  // torre de mando
+  b.box(0.35, 0.7, 0.3, -3.2, 2.05, 0, D);
+  b.box(0.55, 0.22, 1.6, -3.2, 2.45, 0, G);
+  b.box(0.06, 0.04, 1.3, -2.93, 2.47, 0, 0xffe6b0, { em: 0.9 });
+  b.sym((s) => b.sphere(0.17, -3.2, 2.72, s * 0.62, D));
+  // motores
+  b.cyl(0.42, 0.42, 0.3, -4.12, 0.25, 0, K, { rz: Math.PI / 2 });
+  b.cyl(0.34, 0.34, 0.06, -4.28, 0.25, 0, C.glowBlue, { em: 2.2, rz: Math.PI / 2 });
   b.sym((s) => {
-    for (let i = 0; i < 3; i++) b.cyl(0.22, 0.22, 0.2, -3.0, 0.25 + i * 0.05, s * (0.35 + i * 0.4) * (i === 0 ? 0 : 1) + (i === 0 ? 0 : 0), C.glowBlue, { em: 2.5, rz: Math.PI / 2 });
+    b.cyl(0.3, 0.3, 0.3, -4.12, 0.2, s * 0.85, K, { rz: Math.PI / 2 });
+    b.cyl(0.24, 0.24, 0.06, -4.28, 0.2, s * 0.85, C.glowBlue, { em: 2.2, rz: Math.PI / 2 });
+    b.cyl(0.14, 0.14, 0.2, -4.1, 0.35, s * 1.45, K, { rz: Math.PI / 2 });
+    b.cyl(0.11, 0.11, 0.05, -4.22, 0.35, s * 1.45, C.glowBlue, { em: 1.8, rz: Math.PI / 2 });
   });
-  for (let i = 0; i < 40; i++) b.box(0.08, 0.04, 0.08, -2.5 + Math.random() * 5, 0.47 + Math.random() * 0.2, (Math.random() - 0.5) * 2, 0xffe0a0, { em: 1.5 });
+  // detalles de superficie y algunas luces de ventanas
+  const rnd = (() => {
+    let x = 12345;
+    return () => ((x = (x * 16807) % 2147483647) / 2147483647);
+  })();
+  for (let i = 0; i < 60; i++) {
+    const u = rnd();
+    const px = 3.6 - u * 7.2;
+    const half = (2.3 * (4 - px)) / 8; // semiancho de la cubierta en ese punto
+    const pz = (rnd() * 2 - 1) * half * 0.8;
+    const py = 0.55 * (1 - Math.abs(pz) / Math.max(0.01, half)) * ((4 - px) / 8) + 0.03;
+    b.box(0.12 + rnd() * 0.25, 0.06 + rnd() * 0.08, 0.1 + rnd() * 0.25, px, py, pz, rnd() < 0.5 ? D : K);
+  }
+  for (let i = 0; i < 26; i++) {
+    const px = 2.5 - rnd() * 5.5;
+    const half = (2.3 * (4 - px)) / 8;
+    const s = rnd() < 0.5 ? 1 : -1;
+    b.box(0.05, 0.025, 0.05, px, -0.01, s * half * 0.995, 0xffe0a0, { em: 0.8 });
+  }
   return b.build('sd');
 }
 
@@ -150,7 +197,7 @@ export class MenuScene {
     this.camera.position.set(0, 6, 40);
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.9, 0.5, 0.75));
+    this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), 0.75, 0.5, 0.82));
     this.composer.addPass(new OutputPass());
     this.resize();
     window.addEventListener('resize', this.resize);
@@ -228,8 +275,8 @@ export class MenuScene {
     this.clouds.rotation.y += dt * 0.014;
     // el destructor cruza lentamente
     const sdx = ((t * 1.4 + 40) % 160) - 80;
-    this.sd.position.set(sdx * 0.5 + 30, 14 + Math.sin(t * 0.1) * 1, -70 - sdx * 0.25);
-    this.sd.rotation.set(0.05, -0.35, 0.02);
+    this.sd.position.set(sdx * 0.3 + 56, 17 + Math.sin(t * 0.1) * 1, -88 - sdx * 0.2);
+    this.sd.rotation.set(0.1, 0.5, 0.06);
     // cazas en combate circular
     const m = new THREE.Matrix4();
     const q = new THREE.Quaternion();

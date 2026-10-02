@@ -103,6 +103,11 @@ export class MB {
     return this;
   }
 
+  /** Geometría personalizada (se aplanan normales y se añaden atributos como al resto) */
+  mesh(g: THREE.BufferGeometry, x: number, y: number, z: number, color: number, o?: PartOpts) {
+    return this.add(g, x, y, z, color, o);
+  }
+
   private add(g: THREE.BufferGeometry, x: number, y: number, z: number, color: number, o: PartOpts = {}) {
     tmpE.set(o.rx ?? 0, o.ry ?? 0, o.rz ?? 0, 'YXZ');
     tmpQ.setFromEuler(tmpE);

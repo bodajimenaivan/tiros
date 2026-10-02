@@ -2,7 +2,7 @@
 import type { World } from './world';
 import { TICK } from './world';
 import type { Entity, Order } from './entity';
-import { fire, canHit, buffMul, convertUnit, attackOf } from './combat';
+import { fire, canHit, buffMul, convertUnit, attackOf, effVsBuilding } from './combat';
 import { useAbility, abilityRange, autoCastAbilities } from './abilities';
 import { T_SHALLOW } from './map';
 import type { ResourceType } from '../data/types';
@@ -135,9 +135,34 @@ function moveTo(w: World, e: Entity, x: number, y: number, s: ComputedStats, goa
 }
 
 /** Escanea enemigos cercanos y devuelve el mejor objetivo */
+/** Zonas cubiertas por defensas enemigas a las que esta unidad no puede dañar (solo IA) */
+const dangerTmp: Entity[] = [];
+function dangerZones(w: World, e: Entity, radius: number): { x: number; y: number; r2: number }[] | null {
+  if (w.players[e.owner].human || e.ud!.cls === 'worker') return null;
+  w.staticHash.query(e.x, e.y, radius + 12, dangerTmp);
+  let zones: { x: number; y: number; r2: number }[] | null = null;
+  for (const b of dangerTmp) {
+    if (!b.alive || b.kind !== 'building' || !b.bd!.attack || !b.built || !w.hostile(e, b)) continue;
+    if (effVsBuilding(w, e, b) > 2) continue;
+    const r = w.players[b.owner].stats_of(b.defId).range + b.size * 0.5 + 1;
+    (zones ??= []).push({ x: b.x, y: b.y, r2: r * r });
+  }
+  return zones;
+}
+
+function inDanger(zones: { x: number; y: number; r2: number }[] | null, x: number, y: number): boolean {
+  if (!zones) return false;
+  for (const z of zones) {
+    const dx = z.x - x, dy = z.y - y;
+    if (dx * dx + dy * dy < z.r2) return true;
+  }
+  return false;
+}
+
 export function findTarget(w: World, e: Entity, radius: number): Entity | null {
   const atk = e.ud?.attack;
   if (!atk) return null;
+  const zones = dangerZones(w, e, radius);
   const out = w.tmp;
   w.unitHash.query(e.x, e.y, radius, out);
   let best: Entity | null = null;
@@ -145,6 +170,8 @@ export function findTarget(w: World, e: Entity, radius: number): Entity | null {
   for (const t of out) {
     if (!t.alive || t === e || !w.hostile(e, t)) continue;
     if (!canHit(w, e, t, atk)) continue;
+    // la IA no persigue objetivos refugiados bajo defensas que no puede dañar (salvo si ya está dentro)
+    if (zones && inDanger(zones, t.x, t.y) && !inDanger(zones, e.x, e.y)) continue;
     if (t.owner === 0 && !(t.ud!.attack && t.ud!.cls === 'animal')) continue; // ignorar fauna pacífica
     const d = Math.hypot(t.x - e.x, t.y - e.y);
     let sc = -d;
@@ -171,7 +198,10 @@ export function findTarget(w: World, e: Entity, radius: number): Entity | null {
     if (b.bd!.wall) sc -= 20;
     const bs = w.players[b.owner].stats_of(b.defId);
     const eff = Math.max(1, myDmg - (atk.type === 'melee' ? bs.armorMelee : bs.armorRanged)) + (atk.bonus?.building ?? 0) + (b.bd!.tags.includes('turret') ? atk.bonus?.turret ?? 0 : 0);
-    if (b.bd!.attack) sc += eff >= 8 ? 6 : eff <= 2 ? -6 : 2;
+    // defensas inexpugnables para esta unidad: ignorarlas en el ataque automático
+    if (b.bd!.attack && eff <= 2 && e.ud!.cls !== 'worker') continue;
+    if (zones && inDanger(zones, b.x, b.y)) continue;
+    if (b.bd!.attack) sc += eff >= 8 ? 6 : 2;
     else sc += Math.min(4, eff * 0.5);
     if (sc > bestScore) {
       bestScore = sc;

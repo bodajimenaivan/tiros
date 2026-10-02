@@ -81,6 +81,7 @@ export class AIController {
   armyGrowAt = 0;
   lastThreats: Entity[] = [];
   hopelessSince = 0;
+  needSiegeAt = -999;
   defenders = new Set<number>();
   knownEnemyBuildings = new Map<number, { x: number; y: number; owner: number; defId: string }>();
   savingForEra = false;
@@ -1007,6 +1008,11 @@ export class AIController {
       const sumW = Object.values(base).reduce((a, b) => a + (b ?? 0), 0);
       add('pummel', sumW * Math.min(0.2, 0.06 + defs * 0.012));
       add('artillery', sumW * Math.min(0.24, 0.04 + defs * 0.008 + forts * 0.07));
+      // bloqueados por defensas: asedio prioritario
+      if (this.time - this.needSiegeAt < 120) {
+        add('artillery', sumW * 0.3);
+        add('pummel', sumW * 0.25);
+      }
     }
     return base;
   }
@@ -1284,12 +1290,27 @@ export class AIController {
           if (b && b.alive && b.kind === 'building' && !b.bd!.wall && this.p.isEnemy(b.owner)) cands.push(b);
         }
         if (cands.length) {
+          // zonas cubiertas por defensas enemigas
+          const defs = cands.filter((b) => b.bd!.attack && (b.defId === 'turret' || b.defId === 'fortress' || b.defId === 'command_center'));
+          const covered = (b: Entity) => {
+            for (const d of defs) {
+              const r = w.players[d.owner].stats_of(d.defId).range + 3.5;
+              if (d !== b && Math.hypot(d.x - b.x, d.y - b.y) < r + b.size * 0.5) return true;
+            }
+            return false;
+          };
+          let blocked = 0;
           for (const u of idle) {
+            const c = u.ud!.cls;
+            const siegeU = c === 'pummel' || c === 'artillery' || c === 'bomber' || c === 'assaultMech' || c === 'grenadier';
             let best: Entity | null = null;
             let bdist = Infinity;
             for (const b of cands) {
+              const isDef = defs.includes(b);
+              if (!siegeU && (isDef || covered(b))) continue;
               const l = load.get(b.id) ?? 0;
-              const d = Math.hypot(b.x - u.x, b.y - u.y) + l * 6 + (b.bd!.farm || b.defId === 'shelter' ? 8 : 0);
+              let d = Math.hypot(b.x - u.x, b.y - u.y) + l * 6 + (b.bd!.farm || b.defId === 'shelter' ? 8 : 0);
+              if (siegeU && isDef) d -= 25;
               if (d < bdist) {
                 bdist = d;
                 best = b;
@@ -1298,7 +1319,12 @@ export class AIController {
             if (best) {
               w.issue(u, { type: 'attack', targetId: best.id }, false);
               load.set(best.id, (load.get(best.id) ?? 0) + 1);
-            }
+            } else blocked++;
+          }
+          if (blocked) {
+            // solo quedan objetivos defendidos: esperar al asedio fuera de alcance
+            this.needSiegeAt = this.time;
+            for (const u of idle) if (!u.order) w.issue(u, { type: 'move', x: this.rallyX + w.rng.range(-3, 3), y: this.rallyY + w.rng.range(-3, 3) }, false);
           }
           return;
         }

@@ -23,7 +23,7 @@ export class Minimap {
     this.canvas.width = this.W * 2;
     this.canvas.height = this.H * 2;
     wrap.appendChild(this.canvas);
-    this.ctx = this.canvas.getContext('2d')!;
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!;
     const w = s.world;
     const N = w.N;
     // capa base del terreno

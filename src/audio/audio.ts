@@ -119,7 +119,7 @@ export class AudioEngine {
     if (!this.ctx) return;
     const s = settings();
     this.sfx.gain.value = s.sfx * 0.9;
-    this.musicBus.gain.value = s.music * 0.55;
+    this.musicBus.gain.value = s.music * 0.8;
   }
 
   setListener(x: number, y: number, dist: number) {

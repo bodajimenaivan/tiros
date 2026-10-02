@@ -76,6 +76,7 @@ function await_planet_biome(id: string): string {
 }
 
 // arranque
+(window as any).__audio = audio;
 const params = new URLSearchParams(location.search);
 if (params.get('auto')) {
   // modo de prueba: partida directa
