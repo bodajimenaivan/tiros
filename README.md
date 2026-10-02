@@ -62,8 +62,25 @@ Cada civilización tiene sus propias bonificaciones, una bonificación de equipo
 - **Nova**: cristales. Es también la moneda del mercado.
 - **Mineral**: vetas de mineral. Se usa en torretas, muros y fortalezas.
 - Los trabajadores llevan los recursos al centro de mando o a los centros de procesamiento.
-- En el **Puerto Espacial** puedes comprar y vender recursos y enviar tributos a tus aliados.
+- En el **Puerto Espacial** puedes comprar y vender recursos y enviar tributos a tus aliados. Cada venta baja el precio y cada compra lo sube; los precios vuelven poco a poco a su valor normal. Cuando la Nova del mapa se agota, vender comida de las granjas es la forma de seguir consiguiéndola.
 - Los **Núcleos de Energía** dan energía a los edificios militares; sin energía producen a la mitad de velocidad.
+
+## Defensa
+
+- **Guarnición**: el Centro de Mando (15), la Fortaleza (20) y las torretas (5) admiten unidades dentro. Las unidades guarnecidas se curan y añaden disparos al edificio.
+- **Campana de alarma**: desde el Centro de Mando, manda a los trabajadores cercanos a refugiarse; vuelve a pulsarla para que regresen a trabajar.
+- Las torretas, el Centro de Mando y la Fortaleza tienen mucha armadura contra los disparos: para derribarlos usa **arietes**, **artillería** (alcanza más lejos que la fortaleza), **mechs de asalto**, **granaderos** o **bombarderos**.
+
+## Inteligencia artificial
+
+| Dificultad | Comportamiento |
+|---|---|
+| Fácil | Economía lenta, pocos ataques y tardíos. Ideal para aprender. |
+| Normal | Economía completa, ataques periódicos y uso de héroes. |
+| Difícil | Optimiza la economía, contrarresta tu ejército, usa el mercado, el asedio y se retira cuando pierde. |
+| Extremo | Como Difícil, con más trabajadores, reacciones inmediatas y un 20 % más de recolección. |
+
+La IA explora, avanza de era, investiga mejoras, adapta su ejército a lo que ve del tuyo, defiende su base, refugia a sus trabajadores, usa Maestros Jedi para convertir unidades valiosas, recoge holocrones y se rinde cuando no tiene opciones.
 
 ## Eras
 
