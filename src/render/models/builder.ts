@@ -70,6 +70,8 @@ export class MB {
   private mirror = 1;
   /** Superficie por defecto para las primitivas siguientes (null = plain) */
   defMat: number | null = null;
+  /** Bisel automático de las cajas grandes (vehículos y edificios); 0 = cajas rectas */
+  bevel = 0;
 
   constructor() {
     this.cur = this.part('body');
@@ -173,6 +175,11 @@ export class MB {
   }
 
   box(w: number, h: number, d: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
+    const minD = Math.min(w, h, d);
+    if (this.bevel > 0 && minD > this.bevel * 3) {
+      const r = Math.min(this.bevel, minD * 0.22);
+      return this.add(new RoundedBoxGeometry(w, h, d, 1, r), x, y, z, color, o, false);
+    }
     return this.add(new THREE.BoxGeometry(w, h, d), x, y, z, color, o);
   }
   cyl(rt: number, rb: number, h: number, x: number, y: number, z: number, color: number, o?: PartOpts) {
@@ -268,6 +275,18 @@ export class MB {
     const g = new THREE.ExtrudeGeometry(shape, { depth: thick, bevelEnabled: false });
     g.rotateX(-Math.PI / 2);
     return this.add(g, 0, y, 0, color, o);
+  }
+  /** Prisma: perfil (z, y) en el plano transversal, extruido a lo largo de X con bisel */
+  prism(profile: [number, number][], len: number, x: number, y: number, z: number, color: number, o?: PartOpts & { bevel?: number }) {
+    const shape = new THREE.Shape();
+    shape.moveTo(profile[0][0], profile[0][1]);
+    for (let i = 1; i < profile.length; i++) shape.lineTo(profile[i][0], profile[i][1]);
+    shape.closePath();
+    const bv = o?.bevel ?? 0.02;
+    const g = new THREE.ExtrudeGeometry(shape, { depth: Math.max(1e-3, len - bv * 2), bevelEnabled: bv > 0, bevelThickness: bv, bevelSize: bv, bevelSegments: 1 });
+    g.translate(0, 0, -(len - bv * 2) / 2);
+    g.rotateY(Math.PI / 2);
+    return this.add(g, x, y, z, color, o, true);
   }
   /** Sólido de revolución */
   lathe(pts: [number, number][], x: number, y: number, z: number, color: number, o?: PartOpts) {

@@ -1,5 +1,6 @@
 // Edificios procedurales con un "kit" arquitectónico por civilización.
 import { MB, C, type ModelDef } from './builder';
+import { SURF } from '../surface';
 import type { CivStyle } from '../../data/types';
 import { BUILDINGS } from '../../data/buildings';
 
@@ -10,153 +11,296 @@ interface Kit {
   trim: number;
   light: number;
   glass: number;
+  /** superficies de muros, techos y detalles */
+  sWall: number;
+  sRoof: number;
+  sTrim: number;
   block(b: MB, x: number, y: number, z: number, w: number, h: number, d: number, alt?: boolean): void;
   roofOn(b: MB, x: number, y: number, z: number, w: number, d: number): void;
   dome(b: MB, x: number, y: number, z: number, r: number): void;
   tower(b: MB, x: number, z: number, r: number, h: number): void;
 }
 
+/** Fila de ventanas iluminadas en las cuatro caras de un bloque */
+function windows(b: MB, k: Kit, x: number, y: number, z: number, w: number, d: number, h: number, opts: { n?: number; tall?: number; round?: boolean } = {}) {
+  const n = opts.n ?? Math.max(1, Math.round(Math.max(w, d) / 0.45));
+  const wh = opts.tall ?? Math.min(0.22, h * 0.35);
+  for (const [fx, fz, len] of [[1, 0, d], [-1, 0, d], [0, 1, w], [0, -1, w]] as [number, number, number][]) {
+    const cnt = Math.max(1, Math.round((n * len) / Math.max(w, d)));
+    for (let i = 0; i < cnt; i++) {
+      const t = (i + 0.5) / cnt - 0.5;
+      const px = x + (fx ? fx * (w / 2 + 0.005) : t * len * 0.8);
+      const pz = z + (fz ? fz * (d / 2 + 0.005) : t * len * 0.8);
+      const ww = Math.min(0.2, (len * 0.6) / cnt);
+      if (opts.round) b.cyl(ww * 0.45, ww * 0.45, 0.03, px, y, pz, k.glass, { mat: SURF.glass, em: 0.35, rx: fz ? Math.PI / 2 : 0, rz: fx ? Math.PI / 2 : 0, seg: 10 });
+      else {
+        b.box(fx ? 0.03 : ww, wh, fz ? 0.03 : ww, px, y, pz, k.glass, { mat: SURF.glass, em: 0.35 });
+        // marco
+        b.box(fx ? 0.035 : ww + 0.04, 0.025, fz ? 0.035 : ww + 0.04, px, y - wh / 2 - 0.012, pz, k.trim, { mat: k.sTrim });
+      }
+    }
+  }
+}
+
+/** Rejillas, tubos y equipos sobre un techo plano */
+function roofGear(b: MB, k: Kit, x: number, y: number, z: number, w: number, d: number, seed: number) {
+  const r = (i: number) => Math.abs(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) % 1;
+  const n = Math.max(2, Math.round((w * d) / 0.6));
+  for (let i = 0; i < n; i++) {
+    const px = x + (r(i) - 0.5) * w * 0.7, pz = z + (r(i + 50) - 0.5) * d * 0.7;
+    const kind = r(i + 100);
+    if (kind < 0.4) b.rbox(0.22, 0.12, 0.18, 0.02, px, y + 0.06, pz, k.trim, { mat: SURF.grate });
+    else if (kind < 0.7) b.cyl(0.07, 0.08, 0.16, px, y + 0.08, pz, k.wall2, { mat: SURF.panel, seg: 10 });
+    else b.limb([px, y + 0.04, pz], [px + 0.3, y + 0.04, pz], 0.025, 0.025, k.trim, { mat: SURF.panel, seg: 6 });
+  }
+}
+
+/** Puerta con marco */
+function door(b: MB, k: Kit, x: number, y: number, z: number, w: number, h: number, alongZ: boolean) {
+  b.rbox(alongZ ? 0.06 : w + 0.1, h + 0.06, alongZ ? w + 0.1 : 0.06, 0.02, x, y + h / 2, z, k.trim, { mat: k.sTrim });
+  b.box(alongZ ? 0.04 : w, h, alongZ ? w : 0.04, x + (alongZ ? 0.02 : 0), y + h / 2, z + (alongZ ? 0 : 0.02), 0x1c1e22, { mat: SURF.panel });
+  b.box(alongZ ? 0.045 : w * 0.9, 0.03, alongZ ? w * 0.9 : 0.045, x + (alongZ ? 0.022 : 0), y + h + 0.05, z + (alongZ ? 0 : 0.022), k.light, { em: 1.4 });
+}
+
 function baseKit(style: CivStyle): Kit {
   const P: Record<CivStyle, [number, number, number, number, number, number]> = {
     imperial: [0x8c9098, 0x5e626a, 0x3e424a, 0x2a2c30, 0xff4030, 0x1a2a3a],
-    rebel: [0xbcae8c, 0x8c7c5c, 0x6e6a58, 0x4a4436, 0xffb040, 0x2a3a3a],
-    republic: [0xe2ded2, 0xaaa69c, 0x9a3a32, 0x5a5650, 0x6ab8ff, 0x1a2a40],
-    cis: [0x9a6a48, 0x6a4a34, 0x5a3a2a, 0x3a2a20, 0xff7a30, 0x2a1a10],
+    rebel: [0xb8a888, 0x8c7c5c, 0x6e6a58, 0x4a4436, 0xffb040, 0x2a3a3a],
+    republic: [0xdcd8cc, 0xa8a49a, 0x8e3a32, 0x5a5650, 0x6ab8ff, 0x1a2a40],
+    cis: [0xa07050, 0x6e4c36, 0x5a3a2a, 0x3a2a20, 0xff7a30, 0x2a1a10],
     tradefed: [0xa0906c, 0x6e5e44, 0x4e4434, 0x3a3428, 0xff9a40, 0x2a2010],
-    naboo: [0xece2c8, 0xc8b890, 0x5a9a7a, 0x8a7a5a, 0xffd890, 0x2a3a50],
+    naboo: [0xe8dcc0, 0xc4b48c, 0x4e8a6c, 0x8a7a5a, 0xffd890, 0x2a3a50],
     gungan: [0x7a9a7a, 0x5a7a6a, 0x7ab0c8, 0x4a6a5a, 0x8af0ff, 0x6ad0e8],
     wookiee: [0x8a6a3a, 0x6a4a2a, 0x5a7a3a, 0x4a3420, 0xffb050, 0x3a2a1a],
   };
+  const SW: Record<CivStyle, [number, number, number]> = {
+    imperial: [SURF.hull, SURF.panel, SURF.panel],
+    rebel: [SURF.plaster, SURF.concrete, SURF.panel],
+    republic: [SURF.concrete, SURF.concrete, SURF.panel],
+    cis: [SURF.plaster, SURF.plaster, SURF.rock],
+    tradefed: [SURF.hull, SURF.panel, SURF.panel],
+    naboo: [SURF.concrete, SURF.panel, SURF.concrete],
+    gungan: [SURF.plaster, SURF.glass, SURF.leather],
+    wookiee: [SURF.wood, SURF.wood, SURF.wood],
+  };
   const [wall, wall2, roof, trim, light, glass] = P[style];
+  const [sWall, sRoof, sTrim] = SW[style];
   const k: Kit = {
-    wall, wall2, roof, trim, light, glass,
+    wall, wall2, roof, trim, light, glass, sWall, sRoof, sTrim,
     block(b, x, y, z, w, h, d, alt) {
       const c = alt ? wall2 : wall;
+      const prev = b.defMat;
+      b.surf(sWall);
       switch (style) {
-        case 'imperial':
-          b.box(w, h, d, x, y + h / 2, z, c);
-          b.box(w * 1.02, h * 0.08, d * 1.02, x, y + h * 0.82, z, trim);
-          b.box(w * 1.01, 0.05, d * 1.01, x, y + h * 0.5, z, C.team, { team: 1 });
+        case 'imperial': {
+          // bloque de duracero con zócalo, contrafuertes, banda oscura y franja de equipo
+          b.rbox(w, h, d, 0.05, x, y + h / 2, z, c);
+          b.rbox(w * 1.04, h * 0.14, d * 1.04, 0.03, x, y + h * 0.07, z, wall2, { mat: SURF.panel });
+          b.rbox(w * 1.02, h * 0.07, d * 1.02, 0.015, x, y + h * 0.84, z, trim, { mat: SURF.panel });
+          b.box(w * 1.012, 0.045, d * 1.012, x, y + h * 0.55, z, C.team, { team: 1, mat: SURF.panel });
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rbox(0.12, h * 0.98, 0.12, 0.02, x + sx * (w / 2), y + h * 0.49, z + sz * (d / 2), wall2, { mat: SURF.panel });
+          windows(b, k, x, y + h * 0.7, z, w, d, h);
           break;
-        case 'rebel':
-          b.box(w, h * 0.7, d, x, y + h * 0.35, z, c);
-          b.cyl(Math.min(w, d) * 0.5, Math.min(w, d) * 0.5, Math.max(w, d), x, y + h * 0.7, z, c, { rx: w > d ? 0 : Math.PI / 2, rz: w > d ? Math.PI / 2 : 0, seg: 10, sy: 1, sx: 1, sz: h * 0.6 / Math.min(w, d) });
-          b.box(w * 1.01, 0.05, d * 1.01, x, y + h * 0.35, z, C.team, { team: 1 });
+        }
+        case 'rebel': {
+          // búnker: base de hormigón y bóveda, sacos terreros
+          b.rbox(w, h * 0.62, d, 0.06, x, y + h * 0.31, z, c);
+          b.cyl(Math.min(w, d) * 0.5, Math.min(w, d) * 0.5, Math.max(w, d) * 0.98, x, y + h * 0.62, z, wall2, { mat: SURF.concrete, rx: w > d ? 0 : Math.PI / 2, rz: w > d ? Math.PI / 2 : 0, seg: 16, sz: (h * 0.6) / Math.min(w, d) });
+          b.box(w * 1.01, 0.05, d * 1.01, x, y + h * 0.42, z, C.team, { team: 1 });
+          for (let i = 0; i < Math.round(w / 0.3); i++) b.ell(0.13, 0.07, 0.09, x - w / 2 + 0.15 + i * 0.3, y + 0.07, z + d / 2 + 0.06, 0x8a7a58, { mat: SURF.fabric, seg: 8 });
+          windows(b, k, x, y + h * 0.3, z, w, d, h * 0.6, { tall: 0.08 });
           break;
-        case 'republic':
-          b.box(w, h, d, x, y + h / 2, z, c);
-          b.box(w * 1.04, h * 0.1, d * 1.04, x, y + h * 0.05, z, wall2);
-          b.box(w * 1.01, 0.06, d * 1.01, x, y + h * 0.75, z, C.team, { team: 1 });
+        }
+        case 'republic': {
+          b.rbox(w, h, d, 0.04, x, y + h / 2, z, c);
+          b.rbox(w * 1.05, h * 0.12, d * 1.05, 0.03, x, y + h * 0.06, z, wall2);
+          b.rbox(w * 1.03, 0.07, d * 1.03, 0.02, x, y + h, z, wall2);
+          b.box(w * 1.012, 0.06, d * 1.012, x, y + h * 0.78, z, C.team, { team: 1 });
+          windows(b, k, x, y + h * 0.5, z, w, d, h);
           break;
-        case 'cis':
-          b.cyl(Math.min(w, d) * 0.42, Math.min(w, d) * 0.55, h, x, y + h / 2, z, c, { seg: 7 });
-          b.cyl(Math.min(w, d) * 0.3, Math.min(w, d) * 0.42, h * 0.25, x, y + h * 1.1, z, wall2, { seg: 7 });
-          b.torus(Math.min(w, d) * 0.47, 0.04, x, y + h * 0.6, z, C.team, { team: 1, rx: Math.PI / 2, seg: 12 });
+        }
+        case 'cis': {
+          // arquitectura geonosiana: torres orgánicas de adobe
+          const r = Math.min(w, d);
+          b.lathe([[r * 0.56, 0], [r * 0.6, h * 0.15], [r * 0.5, h * 0.55], [r * 0.38, h * 0.95], [r * 0.3, h * 1.1], [r * 0.18, h * 1.3], [0.0, h * 1.36]], x, y, z, c, { seg: 14 });
+          b.ell(r * 0.2, h * 0.25, r * 0.2, x + r * 0.42, y + h * 0.35, z + r * 0.15, wall2, { seg: 10 });
+          b.torus(r * 0.53, 0.04, x, y + h * 0.42, z, C.team, { team: 1, rx: Math.PI / 2, seg: 18 });
+          for (let i = 0; i < 4; i++) {
+            const a = i * 1.57 + 0.4;
+            b.ell(0.05, 0.08, 0.05, x + Math.cos(a) * r * 0.5, y + h * 0.5, z + Math.sin(a) * r * 0.5, 0x1a120c, { seg: 8, em: 0.15 });
+          }
           break;
-        case 'tradefed':
-          b.box(w, h * 0.8, d, x, y + h * 0.4, z, c);
-          b.sphere(Math.min(w, d) * 0.48, x, y + h * 0.8, z, wall2, { sy: 0.5, seg: 12 });
-          b.box(w * 1.01, 0.06, d * 1.01, x, y + h * 0.65, z, C.team, { team: 1 });
+        }
+        case 'tradefed': {
+          b.rbox(w, h * 0.8, d, 0.06, x, y + h * 0.4, z, c);
+          b.ell(Math.min(w, d) * 0.48, Math.min(w, d) * 0.26, Math.min(w, d) * 0.48, x, y + h * 0.8, z, wall2, { mat: SURF.panel, seg: 16 });
+          b.box(w * 1.012, 0.06, d * 1.012, x, y + h * 0.65, z, C.team, { team: 1 });
+          for (const sx of [-1, 1]) b.rbox(0.08, h * 0.78, d * 1.02, 0.02, x + sx * w * 0.3, y + h * 0.39, z, wall2, { mat: SURF.panel });
+          windows(b, k, x, y + h * 0.45, z, w, d, h * 0.8, { round: true });
           break;
-        case 'naboo':
-          b.box(w, h, d, x, y + h / 2, z, c);
-          b.box(w * 1.06, h * 0.06, d * 1.06, x, y + h, z, wall2);
-          // columnas
-          for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(0.07, 0.08, h, x + sx * w * 0.5, y + h / 2, z + sz * d * 0.5, 0xf4ecd8, { seg: 8 });
-          b.box(w * 1.01, 0.05, d * 1.01, x, y + h * 0.82, z, C.team, { team: 1 });
+        }
+        case 'naboo': {
+          // mármol de Theed con columnas, cornisa y friso
+          b.rbox(w, h, d, 0.03, x, y + h / 2, z, c);
+          b.rbox(w * 1.08, h * 0.07, d * 1.08, 0.02, x, y + h, z, wall2);
+          b.rbox(w * 1.06, h * 0.08, d * 1.06, 0.02, x, y + h * 0.04, z, wall2);
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+            b.cyl(0.075, 0.085, h * 0.92, x + sx * w * 0.5, y + h * 0.5, z + sz * d * 0.5, 0xf4ecd8, { seg: 12 });
+            b.rbox(0.2, 0.06, 0.2, 0.015, x + sx * w * 0.5, y + h * 0.95, z + sz * d * 0.5, wall2);
+          }
+          b.box(w * 1.012, 0.05, d * 1.012, x, y + h * 0.84, z, C.team, { team: 1 });
+          windows(b, k, x, y + h * 0.5, z, w, d, h, { tall: Math.min(0.32, h * 0.45) });
           break;
-        case 'gungan':
-          b.cyl(Math.min(w, d) * 0.4, Math.min(w, d) * 0.5, h * 0.4, x, y + h * 0.2, z, c, { seg: 10 });
-          b.sphere(Math.min(w, d) * 0.55, x, y + h * 0.45, z, roof, { em: 0.12, seg: 14, sy: (h * 0.9) / Math.min(w, d) });
-          b.torus(Math.min(w, d) * 0.45, 0.04, x, y + h * 0.38, z, C.team, { team: 1, rx: Math.PI / 2 });
+        }
+        case 'gungan': {
+          const r = Math.min(w, d);
+          b.cyl(r * 0.4, r * 0.5, h * 0.4, x, y + h * 0.2, z, c, { seg: 14, mat: SURF.plaster });
+          b.ell(r * 0.55, h * 0.48, r * 0.55, x, y + h * 0.48, z, roof, { em: 0.15, seg: 18, mat: SURF.glass });
+          b.torus(r * 0.45, 0.04, x, y + h * 0.38, z, C.team, { team: 1, rx: Math.PI / 2, seg: 18 });
           break;
-        case 'wookiee':
-          b.box(w, h, d, x, y + h / 2, z, c);
-          for (let i = 0; i < 3; i++) b.box(w * 1.02, 0.04, d * 1.02, x, y + h * (0.2 + i * 0.3), z, wall2);
-          b.box(w * 1.03, 0.06, d * 1.03, x, y + h * 0.95, z, C.team, { team: 1 });
+        }
+        case 'wookiee': {
+          // madera: troncos, vigas y bandas
+          b.rbox(w, h, d, 0.05, x, y + h / 2, z, c);
+          for (let i = 0; i < 3; i++) b.rbox(w * 1.03, 0.05, d * 1.03, 0.015, x, y + h * (0.2 + i * 0.3), z, wall2);
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cyl(0.08, 0.1, h * 1.05, x + sx * w * 0.5, y + h * 0.52, z + sz * d * 0.5, 0x5a3a20, { seg: 9 });
+          b.box(w * 1.04, 0.06, d * 1.04, x, y + h * 0.95, z, C.team, { team: 1 });
+          windows(b, k, x, y + h * 0.55, z, w, d, h, { tall: 0.12 });
           break;
+        }
       }
+      b.surf(prev);
     },
     roofOn(b, x, y, z, w, d) {
+      const prev = b.defMat;
+      b.surf(sRoof);
       switch (style) {
         case 'imperial':
-          b.box(w * 0.8, 0.12, d * 0.8, x, y + 0.06, z, roof);
+          b.rbox(w * 0.84, 0.12, d * 0.84, 0.03, x, y + 0.06, z, roof);
+          roofGear(b, k, x, y + 0.12, z, w * 0.84, d * 0.84, w * 7 + d);
           break;
         case 'republic':
-          b.wedge(w, 0.35, d, x, y, z, roof, { ry: w > d ? Math.PI / 2 : 0 });
+          b.wedge(w, 0.35, d, x, y, z, roof, { ry: w > d ? Math.PI / 2 : 0, mat: SURF.concrete, ms: 2 });
           break;
         case 'naboo':
-          b.sphere(Math.min(w, d) * 0.45, x, y, z, roof, { sy: 0.7, seg: 14 });
-          b.cone(0.06, 0.3, x, y + Math.min(w, d) * 0.33 + 0.12, z, 0xd8b040);
+          b.ell(Math.min(w, d) * 0.45, Math.min(w, d) * 0.32, Math.min(w, d) * 0.45, x, y, z, roof, { seg: 18 });
+          b.cone(0.06, 0.3, x, y + Math.min(w, d) * 0.33 + 0.12, z, 0xd8b040, { mat: SURF.panel, ms: 3 });
           break;
         case 'wookiee':
-          b.cone(Math.max(w, d) * 0.72, 0.65, x, y + 0.3, z, roof, { seg: 8 });
+          b.cone(Math.max(w, d) * 0.72, 0.65, x, y + 0.3, z, roof, { seg: 10, mat: SURF.fur, ms: 0.6 });
           break;
         case 'rebel':
-          b.box(w * 0.3, 0.12, d * 0.3, x, y + 0.06, z, roof);
+          b.rbox(w * 0.3, 0.12, d * 0.3, 0.03, x, y + 0.06, z, roof);
+          roofGear(b, k, x, y + 0.1, z, w * 0.5, d * 0.5, w * 3 + d);
           break;
-        default:
-          b.box(w * 0.6, 0.1, d * 0.6, x, y + 0.05, z, roof);
-      }
-    },
-    dome(b, x, y, z, r) {
-      if (style === 'gungan') b.sphere(r, x, y, z, roof, { em: 0.12, seg: 14 });
-      else if (style === 'wookiee') b.cone(r * 1.2, r * 1.2, x, y + r * 0.5, z, roof, { seg: 8 });
-      else b.sphere(r, x, y, z, style === 'naboo' ? roof : wall2, { sy: 0.65, seg: 14 });
-    },
-    tower(b, x, z, r, h) {
-      switch (style) {
         case 'cis':
-          b.cone(r * 1.2, h, x, h / 2, z, wall, { seg: 7 });
-          b.sphere(r * 0.5, x, h * 0.75, z, light, { em: 1 });
-          break;
-        case 'wookiee':
-          b.cyl(r * 1.1, r * 1.3, h, x, h / 2, z, 0x5a3a20, { seg: 8 });
-          b.cone(r * 2.4, r * 2.2, x, h + r, z, 0x4a6a2a, { seg: 8 });
+          // remate geonosiano: aguja con luz
+          b.cone(0.12, 0.5, x, y + 0.2, z, wall2, { seg: 10, mat: SURF.plaster });
+          b.sphere(0.05, x, y + 0.47, z, light, { em: 1.6, seg: 8 });
           break;
         case 'gungan':
-          b.cyl(r * 0.6, r * 0.8, h * 0.7, x, h * 0.35, z, wall, { seg: 8 });
-          b.sphere(r * 1.3, x, h * 0.8, z, roof, { em: 0.12, seg: 12 });
+          b.sphere(Math.min(w, d) * 0.22, x, y + 0.05, z, roof, { em: 0.15, seg: 14, mat: SURF.glass });
           break;
-        case 'naboo':
-          b.cyl(r, r * 1.1, h, x, h / 2, z, wall, { seg: 12 });
-          b.sphere(r * 1.15, x, h, z, roof, { sy: 0.8, seg: 12 });
+        case 'tradefed':
+          b.cyl(0.08, 0.1, 0.25, x, y + 0.08, z, trim, { seg: 10, mat: SURF.panel });
+          b.ell(0.18, 0.05, 0.18, x, y + 0.22, z, wall2, { seg: 12, mat: SURF.panel });
           break;
         default:
-          b.cyl(r, r * 1.15, h, x, h / 2, z, wall2, { seg: style === 'imperial' ? 6 : 10 });
-          b.cyl(r * 1.25, r * 1.25, h * 0.12, x, h, z, trim, { seg: style === 'imperial' ? 6 : 10 });
+          b.rbox(w * 0.6, 0.1, d * 0.6, 0.03, x, y + 0.05, z, roof);
+          roofGear(b, k, x, y + 0.1, z, w * 0.6, d * 0.6, w * 5 + d);
       }
+      b.surf(prev);
+    },
+    dome(b, x, y, z, r) {
+      if (style === 'gungan') b.sphere(r, x, y, z, roof, { em: 0.15, seg: 18, mat: SURF.glass });
+      else if (style === 'wookiee') b.cone(r * 1.2, r * 1.2, x, y + r * 0.5, z, roof, { seg: 10, mat: SURF.fur, ms: 0.6 });
+      else {
+        b.ell(r, r * 0.65, r, x, y, z, style === 'naboo' ? roof : wall2, { seg: 18, mat: SURF.panel });
+        b.torus(r * 0.98, 0.03, x, y + 0.02, z, trim, { rx: Math.PI / 2, seg: 20, mat: SURF.panel });
+      }
+    },
+    tower(b, x, z, r, h) {
+      const prev = b.defMat;
+      b.surf(sWall);
+      switch (style) {
+        case 'cis':
+          b.lathe([[r * 1.2, 0], [r * 1.0, h * 0.4], [r * 0.6, h * 0.85], [0.0, h]], x, 0, z, wall, { seg: 12 });
+          b.sphere(r * 0.45, x, h * 0.72, z, light, { em: 1, seg: 10 });
+          break;
+        case 'wookiee':
+          b.cyl(r * 1.1, r * 1.3, h, x, h / 2, z, 0x5a3a20, { seg: 10 });
+          b.cone(r * 2.4, r * 2.2, x, h + r, z, 0x4a6a2a, { seg: 10, mat: SURF.fur, ms: 0.6 });
+          break;
+        case 'gungan':
+          b.cyl(r * 0.6, r * 0.8, h * 0.7, x, h * 0.35, z, wall, { seg: 12 });
+          b.sphere(r * 1.3, x, h * 0.8, z, roof, { em: 0.15, seg: 14, mat: SURF.glass });
+          break;
+        case 'naboo':
+          b.cyl(r, r * 1.1, h, x, h / 2, z, wall, { seg: 16 });
+          b.ell(r * 1.15, r * 0.92, r * 1.15, x, h, z, roof, { seg: 16, mat: SURF.panel });
+          windows(b, k, x, h * 0.7, z, r * 1.6, r * 1.6, h * 0.3, { n: 1, round: true });
+          break;
+        default: {
+          const seg = style === 'imperial' ? 8 : 14;
+          b.cyl(r, r * 1.15, h, x, h / 2, z, wall2, { seg });
+          b.cyl(r * 1.25, r * 1.25, h * 0.1, x, h, z, trim, { seg, mat: SURF.panel });
+          b.cyl(r * 1.05, r * 1.05, 0.06, x, h * 0.55, z, C.team, { team: 1, seg });
+          windows(b, k, x, h * 0.8, z, r * 1.7, r * 1.7, h * 0.2, { n: 1 });
+        }
+      }
+      b.surf(prev);
     },
   };
   return k;
 }
 
 function lamp(b: MB, k: Kit, x: number, y: number, z: number, r = 0.06) {
-  b.sphere(r, x, y, z, k.light, { em: 2.2, seg: 6 });
+  b.cyl(r * 0.6, r * 0.8, r * 1.2, x, y - r * 0.9, z, k.trim, { mat: SURF.panel, seg: 8 });
+  b.sphere(r, x, y, z, k.light, { em: 2.2, seg: 8, mat: SURF.light });
 }
 
 function antenna(b: MB, k: Kit, x: number, y: number, z: number, h: number) {
-  b.cyl(0.025, 0.035, h, x, y + h / 2, z, k.trim, { seg: 5 });
-  lamp(b, k, x, y + h, z, 0.05);
+  b.cyl(0.025, 0.035, h, x, y + h / 2, z, k.trim, { seg: 6, mat: SURF.panel });
+  b.cyl(0.05, 0.05, 0.02, x, y + h * 0.6, z, k.trim, { seg: 8, mat: SURF.panel });
+  lamp(b, k, x, y + h, z, 0.045);
 }
 
 function banner(b: MB, x: number, y: number, z: number, h: number) {
-  b.cyl(0.025, 0.025, h, x, y + h / 2, z, C.dgray, { seg: 5 });
+  b.cyl(0.025, 0.03, h, x, y + h / 2, z, C.dgray, { seg: 8, mat: SURF.panel });
+  b.sphere(0.04, x, y + h + 0.03, z, C.gold, { seg: 8, mat: SURF.panel });
   b.part('flag', 'flag', [x, y + h, z]);
-  b.box(0.02, h * 0.35, 0.35, x, y + h * 0.8, z + 0.18, C.team, { team: 1 });
+  b.rbox(0.015, h * 0.38, 0.36, 0.005, x, y + h * 0.79, z + 0.19, C.team, { team: 1, mat: SURF.fabric });
   b.part('body');
+}
+
+/** Oscurece / aclara un color hexadecimal */
+function shade(hex: number, f: number) {
+  return THREE_COLOR(hex).mul(f);
+}
+function THREE_COLOR(hex: number) {
+  return {
+    mul(f: number) {
+      const r = Math.min(255, Math.round(((hex >> 16) & 255) * f)), g = Math.min(255, Math.round(((hex >> 8) & 255) * f)), bl = Math.min(255, Math.round((hex & 255) * f));
+      return (r << 16) | (g << 8) | bl;
+    },
+  };
 }
 
 export function buildBuildingModel(defId: string, style: CivStyle): ModelDef {
   const bd = BUILDINGS[defId];
   const b = new MB();
+  b.bevel = 0.025;
   const k = baseKit(style);
   const S = bd.size;
   const half = S / 2;
   const w = S * 0.9;
   b.part('body');
-  // cimientos
-  if (!bd.farm && !bd.wall) b.box(S * 0.98, 0.12, S * 0.98, 0, 0.06, 0, style === 'gungan' ? 0x5a7a6a : style === 'wookiee' ? 0x5a4a30 : 0x6a6a66);
+  // cimientos: losa biselada con bordillo
+  if (!bd.farm && !bd.wall) {
+    const fc = style === 'gungan' ? 0x5a7a6a : style === 'wookiee' ? 0x5a4a30 : style === 'cis' ? 0x7a5a42 : 0x6e6e6a;
+    b.rbox(S * 0.98, 0.14, S * 0.98, 0.04, 0, 0.05, 0, fc, { mat: style === 'wookiee' ? SURF.wood : SURF.concrete });
+    b.rbox(S * 0.9, 0.05, S * 0.9, 0.02, 0, 0.13, 0, shade(fc, 0.85), { mat: SURF.concrete });
+  }
   switch (defId) {
     case 'command_center': {
       k.block(b, 0, 0.1, 0, w * 0.82, 1.3, w * 0.82);
@@ -322,16 +466,35 @@ export function buildBuildingModel(defId: string, style: CivStyle): ModelDef {
     }
     case 'turret':
     case 'aa_turret': {
-      b.cyl(0.38, 0.45, 0.8, 0, 0.4, 0, k.wall, { seg: 8 });
-      b.torus(0.4, 0.04, 0, 0.75, 0, C.team, { team: 1, rx: Math.PI / 2, seg: 8 });
+      // base fortificada del estilo de la civilización y cabezal giratorio blindado
+      const prev = b.defMat;
+      b.surf(k.sWall);
+      if (style === 'gungan' || style === 'wookiee') b.cyl(0.36, 0.46, 0.85, 0, 0.42, 0, k.wall, { seg: 14 });
+      else {
+        b.cyl(0.36, 0.46, 0.8, 0, 0.4, 0, k.wall, { seg: style === 'imperial' ? 8 : 14 });
+        b.cyl(0.42, 0.48, 0.14, 0, 0.12, 0, k.wall2, { seg: style === 'imperial' ? 8 : 14 });
+      }
+      b.surf(prev);
+      b.torus(0.38, 0.035, 0, 0.72, 0, C.team, { team: 1, rx: Math.PI / 2, seg: 16 });
+      b.cyl(0.32, 0.34, 0.08, 0, 0.84, 0, k.trim, { seg: 16, mat: SURF.panel });
       b.part('turret', 'head', [0, 0.95, 0]);
-      b.box(0.5, 0.3, 0.45, 0, 0.98, 0, k.wall2);
-      if (defId === 'turret') b.sym((s) => b.cyl(0.045, 0.045, 0.7, 0.4, 1.0, s * 0.12, C.gun, { rz: Math.PI / 2 }));
-      else b.sym((s) => {
-        b.box(0.35, 0.25, 0.15, 0.15, 1.15, s * 0.28, C.dgray, { rz: 0.6 });
-        b.cyl(0.04, 0.04, 0.05, 0.3, 1.27, s * 0.28, C.glowRed, { em: 1.5, rz: Math.PI / 2 - 0.6 });
-      });
-      lamp(b, k, 0.26, 1.1, 0, 0.04);
+      b.surf(SURF.panel);
+      b.rbox(0.52, 0.28, 0.46, 0.06, 0, 1.0, 0, k.wall2, { ms: 2 });
+      b.rbox(0.2, 0.14, 0.36, 0.03, -0.25, 0.98, 0, k.trim, { mat: SURF.grate });
+      b.rbox(0.08, 0.06, 0.28, 0.02, 0.22, 1.12, 0, k.glass, { mat: SURF.glass, em: 0.4 });
+      if (defId === 'turret') {
+        b.sym((sd) => {
+          b.limb([0.2, 1.0, sd * 0.11], [0.68, 1.0, sd * 0.11], 0.045, 0.035, C.gun, { seg: 10 });
+          b.cyl(0.05, 0.05, 0.06, 0.66, 1.0, sd * 0.11, 0x2a2a2e, { rz: Math.PI / 2, seg: 10 });
+          b.rbox(0.18, 0.08, 0.08, 0.02, 0.28, 1.0, sd * 0.11, 0x3a3c40);
+        });
+      } else
+        b.sym((sd) => {
+          b.rbox(0.34, 0.24, 0.16, 0.03, 0.12, 1.16, sd * 0.29, C.dgray, { rz: 0.6 });
+          for (let i = 0; i < 2; i++) b.cyl(0.035, 0.035, 0.05, 0.27, 1.27 - i * 0.07, sd * 0.29 + (i ? -0.04 : 0.04), C.glowRed, { em: 1.5, rz: Math.PI / 2 - 0.6, seg: 8 });
+        });
+      b.surf(null);
+      lamp(b, k, 0.0, 1.2, 0.2, 0.035);
       b.part('body');
       break;
     }

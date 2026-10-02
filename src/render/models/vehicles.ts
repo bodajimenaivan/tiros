@@ -1,6 +1,7 @@
 // Vehículos, andadores, criaturas y naves de Star Wars (procedurales).
 import { MB, C } from './builder';
 import { humanoid, type HumOpts } from './humanoids';
+import { SURF } from '../surface';
 
 const IMP = 0xb8bcc4; // gris imperial
 const IMPD = 0x6a6e76;
@@ -134,26 +135,44 @@ export function hoverTank(b: MB, o: TankOpts) {
 export function atst(b: MB, body: number, scale = 1, opts: { chicken?: boolean } = {}) {
   const s = scale;
   const hipY = 1.25 * s;
+  const S = (v: number) => v * s;
   b.part('body', 'static');
-  // cabeza / cabina
+  // cabina: prisma de frente inclinado, como el AT-ST de Endor
   const hy = hipY + 0.32 * s;
-  b.box(0.62 * s, 0.4 * s, 0.5 * s, 0.05 * s, hy, 0, body);
-  b.wedge(0.5 * s, 0.12 * s, 0.3 * s, 0.36 * s, hy - 0.12 * s, 0, body, { ry: Math.PI / 2, rz: -0.2 });
-  b.box(0.04 * s, 0.07 * s, 0.32 * s, 0.37 * s, hy + 0.06 * s, 0, C.black); // visor
-  b.box(0.5 * s, 0.06 * s, 0.52 * s, 0.02 * s, hy + 0.23 * s, 0, C.team, { team: 1 });
-  b.sym((ss) => b.cyl(0.04 * s, 0.04 * s, 0.32 * s, 0.32 * s, hy - 0.12 * s, ss * 0.27 * s, C.gun, { rz: Math.PI / 2 }));
-  b.cyl(0.035 * s, 0.035 * s, 0.25 * s, 0.3 * s, hy + 0.05 * s, -0.3 * s, C.gun, { rz: Math.PI / 2 });
-  b.box(0.3 * s, 0.18 * s, 0.3 * s, -0.05 * s, hipY + 0.05 * s, 0, IMPD); // cuello/cadera
-  // piernas (articulación inversa simplificada)
+  b.prism([[-0.25, -0.2], [0.25, -0.2], [0.29, 0.02], [0.24, 0.2], [-0.24, 0.2], [-0.29, 0.02]].map(([zz, yy]) => [S(zz), S(yy)]) as [number, number][], S(0.62), S(0.02), hy, 0, body, { bevel: S(0.02) });
+  b.prism([[-0.22, -0.1], [0.22, -0.1], [0.24, 0.05], [0.2, 0.12], [-0.2, 0.12], [-0.24, 0.05]].map(([zz, yy]) => [S(zz), S(yy)]) as [number, number][], S(0.22), S(0.4), hy - S(0.06), 0, body, { bevel: S(0.015) }); // morro
+  b.rbox(S(0.03), S(0.05), S(0.34), S(0.01), S(0.5), hy + S(0.04), 0, 0x101216, { mat: SURF.glass }); // mirilla
+  b.rbox(S(0.5), S(0.05), S(0.46), S(0.015), S(0.0), hy + S(0.22), 0, C.team, { team: 1 });
+  b.cyl(S(0.1), S(0.1), S(0.05), S(-0.08), hy + S(0.26), 0, IMPD, { seg: 12 }); // escotilla
+  // cañones de barbilla y lateral
+  b.sym((ss) => {
+    b.limb([S(0.3), hy - S(0.16), ss * S(0.14)], [S(0.72), hy - S(0.16), ss * S(0.14)], S(0.035), S(0.028), C.gun, { seg: 8 });
+    b.rbox(S(0.18), S(0.08), S(0.08), S(0.02), S(0.32), hy - S(0.16), ss * S(0.14), IMPD);
+  });
+  b.rbox(S(0.2), S(0.1), S(0.1), S(0.025), S(0.15), hy + S(0.02), -S(0.33), IMPD); // vaina lateral
+  b.limb([S(0.25), hy + S(0.02), -S(0.33)], [S(0.55), hy + S(0.02), -S(0.33)], S(0.025), S(0.02), C.gun, { seg: 8 });
+  b.rbox(S(0.16), S(0.12), S(0.12), S(0.03), S(0.15), hy + S(0.02), S(0.33), IMPD); // lanzagranadas
+  // cuello y cadera con conductos
+  b.cyl(S(0.1), S(0.12), S(0.2), S(-0.04), hipY + S(0.06), 0, IMPD, { seg: 12 });
+  b.rbox(S(0.32), S(0.14), S(0.56), S(0.04), S(-0.04), hipY, 0, IMPD);
+  for (const ss of [-1, 1]) b.limb([S(-0.18), hipY + S(0.05), ss * S(0.1)], [S(-0.12), hy - S(0.12), ss * S(0.12)], S(0.02), S(0.02), 0x3a3c40, { seg: 6 });
+  // piernas de articulación inversa: muslo hacia delante, espinilla hacia atrás
   for (const side of [1, -1]) {
-    const z = side * 0.24 * s;
+    const z = side * S(0.27);
     const name = side > 0 ? 'legL' : 'legR';
     b.part(name, side > 0 ? 'legL' : 'legR', [0, hipY, z]);
-    b.box(0.12 * s, 0.6 * s, 0.1 * s, 0.08 * s, hipY - 0.28 * s, z, body, { rz: -0.35 });
-    b.box(0.1 * s, 0.65 * s, 0.09 * s, 0.06 * s, hipY - 0.85 * s, z, body, { rz: 0.3 });
-    b.box(0.08 * s, 0.08 * s, 0.08 * s, 0.17 * s, hipY - 0.56 * s, z, IMPD);
-    b.box(0.34 * s, 0.06 * s, 0.24 * s, 0.02 * s, 0.03 * s, z, IMPD); // pie
-    b.box(0.08 * s, 0.05 * s, 0.3 * s, 0.17 * s, 0.03 * s, z, IMPD);
+    b.cyl(S(0.1), S(0.1), S(0.08), 0, hipY, z, IMPD, { rx: Math.PI / 2, seg: 14 }); // cadera
+    const knee: [number, number, number] = [S(0.22), hipY - S(0.5), z];
+    const ankle: [number, number, number] = [S(-0.02), S(0.14), z];
+    b.limb([0, hipY, z], knee, S(0.065), S(0.055), body, { seg: 8 });
+    b.limb([S(0.04), hipY - S(0.05), z + side * S(0.06)], [S(0.2), hipY - S(0.45), z + side * S(0.06)], S(0.022), S(0.022), 0x3a3c40, { seg: 6 }); // pistón
+    b.cyl(S(0.075), S(0.075), S(0.1), knee[0], knee[1], z, IMPD, { rx: Math.PI / 2, seg: 14 }); // rodilla
+    b.limb(knee, ankle, S(0.055), S(0.045), body, { seg: 8 });
+    b.cyl(S(0.055), S(0.055), S(0.09), ankle[0], ankle[1], z, IMPD, { rx: Math.PI / 2, seg: 12 });
+    // pie con dedos
+    b.rbox(S(0.22), S(0.06), S(0.16), S(0.02), S(0.02), S(0.05), z, IMPD);
+    for (const t of [-1, 0, 1]) b.rbox(S(0.16), S(0.04), S(0.05), S(0.015), S(0.16), S(0.03), z + t * S(0.07), body, { ry: t * 0.25 });
+    b.rbox(S(0.1), S(0.04), S(0.06), S(0.015), S(-0.13), S(0.03), z, body);
   }
   void opts;
   b.part('body');
@@ -161,33 +180,44 @@ export function atst(b: MB, body: number, scale = 1, opts: { chicken?: boolean }
 
 export function atat(b: MB, body: number, scale = 1) {
   const s = scale;
+  const S = (v: number) => v * s;
   const bodyY = 2.3 * s;
   b.part('body', 'static');
-  // cuerpo
-  b.box(1.9 * s, 0.75 * s, 0.85 * s, 0, bodyY, 0, body);
-  b.box(1.7 * s, 0.25 * s, 0.75 * s, 0, bodyY + 0.48 * s, 0, body);
-  b.box(1.95 * s, 0.08 * s, 0.9 * s, 0, bodyY - 0.4 * s, 0, IMPD);
-  b.box(1.4 * s, 0.06 * s, 0.88 * s, 0, bodyY + 0.2 * s, 0, C.team, { team: 1 });
-  for (let i = 0; i < 4; i++) b.box(0.05 * s, 0.6 * s, 0.87 * s, -0.7 * s + i * 0.45 * s, bodyY, 0, IMPD);
-  // cuello y cabeza
-  b.box(0.5 * s, 0.3 * s, 0.3 * s, 1.1 * s, bodyY - 0.05 * s, 0, IMPD);
-  b.part('head', 'head', [1.35 * s, bodyY - 0.05 * s, 0], 'body');
-  b.box(0.7 * s, 0.42 * s, 0.42 * s, 1.65 * s, bodyY - 0.1 * s, 0, body);
-  b.wedge(0.42 * s, 0.15 * s, 0.25 * s, 2.05 * s, bodyY - 0.31 * s, 0, body, { ry: Math.PI / 2 });
-  b.box(0.04 * s, 0.06 * s, 0.3 * s, 2.0 * s, bodyY + 0.04 * s, 0, C.black);
-  b.sym((ss) => b.cyl(0.05 * s, 0.05 * s, 0.45 * s, 2.0 * s, bodyY - 0.28 * s, ss * 0.2 * s, C.gun, { rz: Math.PI / 2 }));
-  b.sym((ss) => b.cyl(0.03 * s, 0.03 * s, 0.3 * s, 1.95 * s, bodyY + 0.0 * s, ss * 0.24 * s, C.gun, { rz: Math.PI / 2 }));
-  // patas
+  // cuerpo: sección hexagonal con flancos inclinados
+  const prof: [number, number][] = [[-0.3, -0.4], [0.3, -0.4], [0.44, -0.12], [0.44, 0.22], [0.3, 0.42], [-0.3, 0.42], [-0.44, 0.22], [-0.44, -0.12]];
+  b.prism(prof.map(([zz, yy]) => [S(zz), S(yy)]) as [number, number][], S(1.9), 0, bodyY, 0, body, { bevel: S(0.03) });
+  b.prism([[-0.22, 0], [0.22, 0], [0.18, 0.1], [-0.18, 0.1]].map(([zz, yy]) => [S(zz), S(yy)]) as [number, number][], S(1.4), S(-0.1), bodyY + S(0.42), 0, body, { bevel: S(0.015) }); // lomo
+  // juntas de las placas y franja de equipo
+  for (let i = 0; i < 5; i++) b.rbox(S(0.03), S(0.6), S(0.9), S(0.01), S(-0.76 + i * 0.38), bodyY + S(0.02), 0, IMPD);
+  b.rbox(S(1.6), S(0.06), S(0.9), S(0.015), S(-0.05), bodyY + S(0.26), 0, C.team, { team: 1 });
+  b.rbox(S(1.95), S(0.08), S(0.62), S(0.02), 0, bodyY - S(0.4), 0, IMPD); // vientre
+  // cuello corrugado
+  for (let i = 0; i < 4; i++) b.cyl(S(0.17), S(0.17), S(0.06), S(1.02 + i * 0.08), bodyY - S(0.04), 0, i % 2 ? IMPD : 0x4a4e56, { rz: Math.PI / 2, seg: 14 });
+  b.part('head', 'head', [S(1.3), bodyY - S(0.05), 0], 'body');
+  // cabeza: prisma alargado con morro en cuña
+  b.prism([[-0.2, -0.2], [0.2, -0.2], [0.24, 0.0], [0.19, 0.2], [-0.19, 0.2], [-0.24, 0.0]].map(([zz, yy]) => [S(zz), S(yy)]) as [number, number][], S(0.7), S(1.62), bodyY - S(0.08), 0, body, { bevel: S(0.02) });
+  b.prism([[-0.17, -0.12], [0.17, -0.12], [0.2, 0.04], [0.14, 0.1], [-0.14, 0.1], [-0.2, 0.04]].map(([zz, yy]) => [S(zz), S(yy)]) as [number, number][], S(0.3), S(2.06), bodyY - S(0.2), 0, body, { bevel: S(0.015) });
+  b.rbox(S(0.03), S(0.04), S(0.3), S(0.01), S(1.97), bodyY + S(0.06), 0, 0x101216, { mat: SURF.glass }); // mirilla
+  b.sym((ss) => {
+    b.limb([S(1.9), bodyY - S(0.3), ss * S(0.13)], [S(2.42), bodyY - S(0.3), ss * S(0.13)], S(0.045), S(0.035), C.gun, { seg: 10 }); // cañones de barbilla
+    b.rbox(S(0.12), S(0.1), S(0.1), S(0.025), S(1.9), bodyY - S(0.3), ss * S(0.13), IMPD);
+    b.limb([S(1.85), bodyY + S(0.02), ss * S(0.26)], [S(2.15), bodyY + S(0.02), ss * S(0.26)], S(0.025), S(0.02), C.gun, { seg: 8 }); // bláster de sien
+  });
+  // patas: cadera, muslo, rodilla, espinilla, tobillo y pie circular
   const legs: [string, 'legFL' | 'legFR' | 'legBL' | 'legBR', number, number][] = [
-    ['legFL', 'legFL', 0.7, 0.36], ['legFR', 'legFR', 0.7, -0.36], ['legBL', 'legBL', -0.7, 0.36], ['legBR', 'legBR', -0.7, -0.36],
+    ['legFL', 'legFL', 0.68, 0.4], ['legFR', 'legFR', 0.68, -0.4], ['legBL', 'legBL', -0.68, 0.4], ['legBR', 'legBR', -0.68, -0.4],
   ];
   for (const [name, anim, x, z] of legs) {
-    b.part(name, anim, [x * s, bodyY - 0.3 * s, z * s]);
-    b.box(0.22 * s, 0.25 * s, 0.22 * s, x * s, bodyY - 0.35 * s, z * s, IMPD);
-    b.box(0.16 * s, 1.0 * s, 0.16 * s, x * s, bodyY - 0.95 * s, z * s, body);
-    b.box(0.2 * s, 0.18 * s, 0.2 * s, x * s, bodyY - 1.45 * s, z * s, IMPD);
-    b.box(0.14 * s, 0.75 * s, 0.14 * s, x * s, bodyY - 1.85 * s, z * s, body);
-    b.cyl(0.18 * s, 0.22 * s, 0.14 * s, x * s, 0.07 * s, z * s, IMPD, { seg: 8 });
+    const X = S(x), Z = S(z);
+    b.part(name, anim, [X, bodyY - S(0.3), Z]);
+    b.cyl(S(0.2), S(0.2), S(0.14), X, bodyY - S(0.28), Z + Math.sign(z) * S(0.04), IMPD, { rx: Math.PI / 2, seg: 16 });
+    b.rbox(S(0.2), S(1.0), S(0.18), S(0.04), X, bodyY - S(0.9), Z, body);
+    b.rbox(S(0.12), S(0.8), S(0.04), S(0.015), X + S(0.06), bodyY - S(0.9), Z + Math.sign(z) * S(0.1), IMPD); // pistón
+    b.cyl(S(0.15), S(0.15), S(0.24), X, bodyY - S(1.42), Z, IMPD, { rx: Math.PI / 2, seg: 16 }); // rodilla
+    b.rbox(S(0.16), S(0.95), S(0.15), S(0.035), X, bodyY - S(1.85), Z, body);
+    b.cyl(S(0.11), S(0.11), S(0.18), X, S(0.26), Z, IMPD, { rx: Math.PI / 2, seg: 14 }); // tobillo
+    b.cyl(S(0.2), S(0.27), S(0.16), X, S(0.08), Z, IMPD, { seg: 18 }); // pie
+    b.torus(S(0.22), S(0.025), X, S(0.15), Z, 0x4a4e56, { rx: Math.PI / 2, seg: 18 });
   }
   b.part('body');
 }

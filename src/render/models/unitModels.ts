@@ -6,6 +6,7 @@ import {
   artilleryPiece, droideka, pummel, aaPlatform, type BeastOpts,
 } from './vehicles';
 import type { CivStyle } from '../../data/types';
+import { SURF } from '../surface';
 import { UNITS } from '../../data/units';
 
 const WHITE = 0xe6e6e2;
@@ -95,6 +96,11 @@ export function buildUnitModel(defId: string, style: CivStyle, saber: number): M
   if (cls === 'unique') {
     unique(b, defId.replace('elite_', ''), style, v);
     return b.build(defId + style);
+  }
+  // vehículos y naves: aristas biseladas y chapa metálica por defecto
+  if (!['worker', 'trooper', 'grenadier', 'aaTrooper', 'jediKnight', 'jediMaster'].includes(cls)) {
+    b.bevel = 0.03;
+    b.surf(style === 'gungan' || style === 'wookiee' ? SURF.wood : SURF.hull);
   }
   switch (cls) {
     case 'worker':

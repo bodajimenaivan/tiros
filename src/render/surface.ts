@@ -34,7 +34,7 @@ const S = 256;
 const PROPS: [number, number, number, number][] = [
   [2.2, 0.35, -1, 0.8], // plain
   [2.6, 0.25, 0.05, 1.25], // armor
-  [1.6, 0.9, 0.6, 1.1], // panel
+  [1.0, 0.7, 0.55, 1.1], // panel
   [7.0, 0.5, 0.0, 0.35], // fabric
   [5.0, 1.4, 0.0, 0.25], // fur
   [5.0, 0.2, 0.0, 0.45], // skin
@@ -166,7 +166,7 @@ function generateLayers(): Uint8Array<ArrayBuffer> {
         const rivet = edge < 0.035 && edge > 0.015 ? 1 - smooth(0.0, 0.18, Math.hypot(rx - 0.5, ry - 0.5)) : 0;
         const scratch = smooth(0.94, 0.995, vnoise(u * 0.2, v, 96, 57)) * 0.8;
         const grime = smooth(0.3, 0.9, fbm(u, v, 8, 3, 59)) * (1 - smooth(0.0, 0.08, edge)) ;
-        put(2, i, 0.55 - groove * 0.45 + rivet * 0.25 + (n2 - 0.5) * 0.08 - scratch * 0.1, 0.5 + (id - 0.5) * 0.14 - grime * 0.22 + scratch * 0.1, 0.38 + id * 0.18 + grime * 0.25 - scratch * 0.12, 1 - groove * 0.5 - grime * 0.2);
+        put(2, i, 0.55 - groove * 0.4 + rivet * 0.2 + (n2 - 0.5) * 0.08 - scratch * 0.1, 0.5 + (id - 0.5) * 0.1 - grime * 0.14 + scratch * 0.08, 0.38 + id * 0.18 + grime * 0.25 - scratch * 0.12, 1 - groove * 0.3 - grime * 0.12);
         void rivetPhase;
       }
       // 3 fabric: trama y pliegues
@@ -228,7 +228,7 @@ function generateLayers(): Uint8Array<ArrayBuffer> {
         const groove = 1 - smooth(0.0, 0.008, edge);
         const streak = smooth(0.45, 0.9, vnoise(u, v * 0.0625, 48, 123)) * smooth(0.2, 0.9, fbm(u, v, 4, 2, 125));
         const weld = 1 - smooth(0.0, 0.02, Math.abs(edge - 0.03));
-        put(12, i, 0.55 - groove * 0.5 + weld * 0.08 + (n2 - 0.5) * 0.06, 0.52 + (id - 0.5) * 0.1 - streak * 0.22, 0.45 + id * 0.15 + streak * 0.2, 1 - groove * 0.55 - streak * 0.15);
+        put(12, i, 0.55 - groove * 0.45 + weld * 0.08 + (n2 - 0.5) * 0.06, 0.52 + (id - 0.5) * 0.08 - streak * 0.18, 0.45 + id * 0.15 + streak * 0.2, 1 - groove * 0.35 - streak * 0.12);
       }
       // 13 grate: rejilla
       {
