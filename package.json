@@ -1,0 +1,28 @@
+{
+  "name": "star-wars-age-of-galactic-empires",
+  "private": true,
+  "version": "1.0.0",
+  "description": "RTS estilo Age of Empires ambientado en Star Wars (uso privado / fan game)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx tests/run-tests.ts",
+    "sim": "tsx tests/sim-bench.ts"
+  },
+  "dependencies": {
+    "@fontsource/exo-2": "^5.3.0",
+    "@fontsource/orbitron": "^5.3.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/three": "^0.180.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vite-plugin-singlefile": "^2.3.3"
+  }
+}
