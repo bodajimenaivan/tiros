@@ -516,18 +516,23 @@ export function buildBuildingModel(defId: string, style: CivStyle): ModelDef {
     }
     case 'wall':
     case 'gate': {
-      const h = defId === 'gate' ? 1.1 : 0.95;
-      if (style === 'wookiee' || style === 'gungan') {
-        b.box(0.9, h, 0.9, 0, h / 2, 0, style === 'gungan' ? 0x6a8a7a : 0x6a4a2a);
-        if (style === 'gungan') b.box(0.95, h * 0.6, 0.95, 0, h * 0.6, 0, 0x8ae0f0, { em: 0.4 });
-      } else {
-        b.box(0.95, h, 0.95, 0, h / 2, 0, k.wall);
-        b.box(1.0, 0.1, 1.0, 0, h, 0, k.trim);
-      }
-      b.box(0.97, 0.06, 0.97, 0, h * 0.7, 0, C.team, { team: 1 });
+      // tramo de muralla: tronco de pirámide con zócalo, parapeto y almenas
+      const h = defId === 'gate' ? 1.15 : 1.0;
+      const prev = b.defMat;
+      const organic = style === 'wookiee' || style === 'gungan';
+      const wc = style === 'gungan' ? 0x6a8a7a : style === 'wookiee' ? 0x6a4a2a : k.wall;
+      b.surf(organic ? (style === 'wookiee' ? SURF.wood : SURF.plaster) : k.sWall === SURF.hull ? SURF.concrete : k.sWall);
+      b.rbox(0.98, 0.18, 0.98, 0.03, 0, 0.09, 0, shade(wc, 0.75));
+      b.cyl(0.47 * Math.SQRT2, 0.62, h * 0.82, 0, 0.16 + h * 0.41, 0, wc, { seg: 4, ry: Math.PI / 4, flat: true });
+      b.rbox(0.9, 0.1, 0.9, 0.02, 0, h * 0.98, 0, shade(wc, 0.9));
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rbox(0.2, 0.16, 0.2, 0.02, sx * 0.34, h * 1.1, sz * 0.34, wc);
+      if (style === 'gungan') b.ell(0.5, h * 0.4, 0.5, 0, h * 0.55, 0, 0x8ae0f0, { em: 0.35, mat: SURF.glass, seg: 12 });
+      b.surf(prev);
+      b.box(0.99, 0.06, 0.99, 0, h * 0.7, 0, C.team, { team: 1 });
       if (defId === 'gate') {
-        b.box(0.97, 0.5, 0.5, 0, 0.3, 0, C.dark);
-        lamp(b, k, 0, h + 0.1, 0, 0.06);
+        b.rbox(1.0, 0.55, 0.5, 0.03, 0, 0.42, 0, 0x1c1e22, { mat: SURF.panel });
+        b.box(1.01, 0.04, 0.42, 0, 0.72, 0, k.light, { em: 1.4 });
+        lamp(b, k, 0, h + 0.25, 0, 0.06);
       }
       break;
     }
