@@ -1,0 +1,56 @@
+FICHA · CONFEDERACIÓN DE SISTEMAS INDEPENDIENTES
+Carpeta: assets/models/cis/ (los héroes van en assets/models/heroes/)
+Usala con las recetas del prompt principal. Personajes: .fbx (receta R2). Vehículos y no humanoides: .glb (R4). Edificios: .glb (R5).
+heavy_trooper es opcional: si falta, el juego usa trooper. Si dos vehículos son el mismo, guardá una copia con cada nombre.
+
+PERSONAJES (.fbx)
+worker: droide obrero de mantenimiento, humanoide, delgado y metálico. Magenta: placa del pecho.
+trooper: droide de combate B1 color hueso, delgado, con la cabeza alargada característica. Magenta: placa del pecho.
+heavy_trooper: superdroide de combate B2 azul acero, de pecho voluminoso. Magenta: franjas en el pecho.
+grenadier: droide B1 con mochila de detonadores. Magenta: pecho.
+aa_trooper: droide B1 con mochila de misiles. Magenta: pecho.
+jedi_knight: acólito sith con ropa negra ceñida. Magenta: faja.
+jedi_master: lord sith con capa oscura hasta la rodilla. Magenta: faja.
+magnaguard (única): MagnaGuardia IG-100, droide alto y delgado con capa corta y ojos rojos. Magenta: capa.
+
+HÉROES (.fbx, en assets/models/heroes/, sin magenta)
+dooku: Conde Dooku, anciano de barba blanca, traje oscuro y capa por la rodilla
+ventress: Asajj Ventress, cabeza rapada, piel pálida, ropa negra ajustada
+grievous: General Grievous, cíborg alto con armadura color hueso y capa corta
+
+VEHÍCULOS Y NAVES (.glb)
+scout: STAP (plataforma voladora) con droide B1
+mounted_trooper: el mismo STAP (copia)
+strike_mech: droide araña enano
+mech_destroyer: tanque droide de orugas
+assault_mech: droide Hailfire (dos ruedas grandes y lanzamisiles)
+pummel: ariete repulsor blindado droide
+artillery: droide araña de artillería (OG-9)
+aa_mobile: plataforma droide de misiles antiaéreos
+fighter: droide buitre
+adv_fighter: tri-caza droide
+bomber: bombardero droide Hyena
+trader: carguero droide
+
+ESTILO DE LOS EDIFICIOS: Geonosis: torres orgánicas de roca rojiza en forma de aguja o termitero, combinadas con metal bronce y estructuras droides
+
+EDIFICIOS (.glb, receta R5; no hacer muros ni compuertas)
+command_center: centro de mando, el edificio principal y más grande
+shelter: vivienda prefabricada pequeña
+food_center: depósito de alimentos con silos
+farm: granja de humedad, parcela de cultivo baja y plana con un vaporizador
+carbon_center: depósito de carbono con pilas de material
+mining_center: centro de minería con cristales y mineral
+power_core: núcleo de energía, reactor o torre con brillo
+troop_center: cuartel de tropas
+mech_factory: fábrica de vehículos con portón grande
+research_center: laboratorio de investigación con antenas
+spaceport: puerto espacial con plataforma de aterrizaje
+turret: torreta bláster defensiva
+aa_turret: torreta antiaérea con lanzamisiles
+temple: templo de la Fuerza
+heavy_weapons: fábrica de armas pesadas
+airbase: base aérea con hangar
+shield_gen: generador de escudos con cúpula o antena
+fortress: fortaleza
+monument: monumento, la maravilla más espectacular de la civilización

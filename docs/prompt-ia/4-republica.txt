@@ -1,0 +1,57 @@
+FICHA · REPÚBLICA GALÁCTICA
+Carpeta: assets/models/republic/ (los héroes van en assets/models/heroes/)
+Usala con las recetas del prompt principal. Personajes: .fbx (receta R2). Vehículos y no humanoides: .glb (R4). Edificios: .glb (R5).
+heavy_trooper es opcional: si falta, el juego usa trooper. Si dos vehículos son el mismo, guardá una copia con cada nombre.
+
+PERSONAJES (.fbx)
+worker: operario de la República con mono gris claro y casco de obra. Magenta: franja del casco.
+trooper: soldado clon fase II con armadura blanca y casco con visor en T. Magenta: franjas en el casco y los hombros.
+heavy_trooper: soldado clon con mochila de munición. Magenta: franjas.
+grenadier: soldado clon con mochila de detonadores. Magenta: franjas.
+aa_trooper: soldado clon con casco de visor ancho y mochila de misiles. Magenta: franjas.
+jedi_knight: caballero jedi con túnica marrón clásica, corta. Magenta: faja.
+jedi_master: maestro jedi con túnica marrón y capucha, hasta la rodilla. Magenta: faja.
+arc_trooper (única): soldado clon ARC con faldón kama corto, hombrera y telémetro en el casco. Magenta: kama y hombrera.
+
+HÉROES (.fbx, en assets/models/heroes/, sin magenta)
+yoda: Maestro Yoda, pequeño, piel verde, orejas largas, túnica marrón
+obiwan: Obi-Wan Kenobi, barba, túnica jedi marrón y beige
+mace: Mace Windu, túnica jedi marrón, cabeza rapada
+rex: Capitán Rex, soldado clon con armadura blanca y marcas azules
+
+VEHÍCULOS Y NAVES (.glb)
+scout: BARC speeder con piloto clon
+mounted_trooper: el mismo BARC speeder (copia)
+strike_mech: AT-RT con piloto clon
+mech_destroyer: tanque repulsor TX-130 Saber
+assault_mech: AT-TE
+pummel: Juggernaut HAVw A6 (tanque de diez ruedas)
+artillery: SPHA-T
+aa_mobile: plataforma repulsora de misiles antiaéreos de la República
+fighter: ARC-170
+adv_fighter: V-wing
+bomber: Y-wing de las Guerras Clon
+trader: carguero de la República con contenedores
+
+ESTILO DE LOS EDIFICIOS: República de las Guerras Clon: blanco y gris claro con detalles rojos, formas limpias y elegantes, como Kamino y Coruscant
+
+EDIFICIOS (.glb, receta R5; no hacer muros ni compuertas)
+command_center: centro de mando, el edificio principal y más grande
+shelter: vivienda prefabricada pequeña
+food_center: depósito de alimentos con silos
+farm: granja de humedad, parcela de cultivo baja y plana con un vaporizador
+carbon_center: depósito de carbono con pilas de material
+mining_center: centro de minería con cristales y mineral
+power_core: núcleo de energía, reactor o torre con brillo
+troop_center: cuartel de tropas
+mech_factory: fábrica de vehículos con portón grande
+research_center: laboratorio de investigación con antenas
+spaceport: puerto espacial con plataforma de aterrizaje
+turret: torreta bláster defensiva
+aa_turret: torreta antiaérea con lanzamisiles
+temple: templo de la Fuerza
+heavy_weapons: fábrica de armas pesadas
+airbase: base aérea con hangar
+shield_gen: generador de escudos con cúpula o antena
+fortress: fortaleza
+monument: monumento, la maravilla más espectacular de la civilización

@@ -1,0 +1,55 @@
+FICHA · FEDERACIÓN DE COMERCIO
+Carpeta: assets/models/tradefed/ (los héroes van en assets/models/heroes/)
+Usala con las recetas del prompt principal. Personajes: .fbx (receta R2). Vehículos y no humanoides: .glb (R4). Edificios: .glb (R5).
+heavy_trooper es opcional: si falta, el juego usa trooper. Si dos vehículos son el mismo, guardá una copia con cada nombre.
+
+PERSONAJES (.fbx)
+worker: droide de trabajo pesado, humanoide y marrón. Magenta: pecho.
+trooper: droide de combate B1 color arena. Magenta: pecho.
+heavy_trooper: droide comandante OOM color arena. Magenta: marcas en el pecho y la cabeza.
+grenadier: droide B1 color arena con mochila de detonadores. Magenta: pecho.
+aa_trooper: droide B1 color arena con mochila de misiles. Magenta: pecho.
+jedi_knight: guerrero zabrak con ropa negra. Magenta: faja.
+jedi_master: lord sith con capa negra hasta la rodilla. Magenta: faja.
+droideka (única, .glb con la receta R4): droide destructor desplegado con su escudo. No es humanoide: no pasa por Mixamo.
+
+HÉROES (.fbx, en assets/models/heroes/, sin magenta)
+maul: Darth Maul, cara tatuada en rojo y negro, cuernos cortos, ropa negra
+oom9: Comandante OOM-9, droide B1 comandante con marcas amarillas
+aurra: Aurra Sing, cazarrecompensas de piel pálida, traje rojo y antena en la cabeza
+
+VEHÍCULOS Y NAVES (.glb)
+scout: STAP (plataforma voladora) con droide B1
+mounted_trooper: el mismo STAP (copia)
+strike_mech: droide tanque de una gran oruga central (tipo Persuader)
+mech_destroyer: droide araña OG-9
+assault_mech: tanque AAT
+pummel: MTT (transporte blindado grande)
+artillery: cañón de artillería PAC de la Federación
+aa_mobile: plataforma de misiles antiaéreos de la Federación
+fighter: droide buitre
+bomber: bombardero droide Hyena
+trader: carguero de la Federación
+
+ESTILO DE LOS EDIFICIOS: Federación de Comercio: formas circulares y semicirculares, metal bronce y marrón, anillos como la nave de control de droides
+
+EDIFICIOS (.glb, receta R5; no hacer muros ni compuertas)
+command_center: centro de mando, el edificio principal y más grande
+shelter: vivienda prefabricada pequeña
+food_center: depósito de alimentos con silos
+farm: granja de humedad, parcela de cultivo baja y plana con un vaporizador
+carbon_center: depósito de carbono con pilas de material
+mining_center: centro de minería con cristales y mineral
+power_core: núcleo de energía, reactor o torre con brillo
+troop_center: cuartel de tropas
+mech_factory: fábrica de vehículos con portón grande
+research_center: laboratorio de investigación con antenas
+spaceport: puerto espacial con plataforma de aterrizaje
+turret: torreta bláster defensiva
+aa_turret: torreta antiaérea con lanzamisiles
+temple: templo de la Fuerza
+heavy_weapons: fábrica de armas pesadas
+airbase: base aérea con hangar
+shield_gen: generador de escudos con cúpula o antena
+fortress: fortaleza
+monument: monumento, la maravilla más espectacular de la civilización

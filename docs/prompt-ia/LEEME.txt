@@ -1,0 +1,12 @@
+CÓMO USAR ESTOS ARCHIVOS CON CHATGPT O GEMINI
+
+1. Abrí 0-principal.txt, copiá todo y pegalo como primer mensaje.
+2. La IA te va a hacer unas preguntas y, cuando necesite una lista, te va a pedir una ficha:
+   - 1-terreno.txt para las texturas de suelo;
+   - de 2-imperio.txt a 9-wookiees.txt para cada civilización (personajes, héroes, vehículos y edificios).
+   Abrís la ficha que te pide, copiás todo y la pegás.
+3. Si el chat se hace muy largo, abrí uno nuevo y pegá 0-principal.txt, la ficha que estabas usando y el último bloque PROGRESO.
+
+Cada archivo tiene menos de 10.000 caracteres, para entrar en un solo mensaje.
+Si tu IA deja adjuntar archivos (el clip), también podés adjuntarlos todos juntos y escribir:
+"Leé 0-principal.txt y seguí sus instrucciones".

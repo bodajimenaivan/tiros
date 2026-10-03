@@ -1,0 +1,22 @@
+FICHA · TERRENO
+Carpeta: assets/terrain/ · Receta R1 · Guardar cada una como <nombre>.png o <nombre>.jpg
+
+arena: arena de desierto dorada con ondulaciones finas de viento y piedritas (Tatooine, Jakku)
+arenisca: roca arenisca anaranjada, agrietada y en capas (acantilados de Tatooine y Jakku)
+nieve: nieve compacta con marcas de viento y cristales de hielo (Hoth)
+hielo: hielo azulado translúcido con grietas (Hoth)
+cesped: césped verde natural con tréboles y alguna calva de tierra (Naboo)
+pradera: pasto seco dorado de pradera con tierra (Lothal)
+suelo_bosque: suelo de bosque con hojas secas, agujas de pino, musgo y raíces (Endor)
+suelo_selva: suelo de selva húmeda con musgo, hojas grandes y tierra oscura (Kashyyyk, Yavin 4)
+barro: barro oscuro de pantano con charcos, raíces y algas (Dagobah y zonas bajas)
+tierra_roja: tierra rojiza polvorienta con guijarros (Geonosis, Crait)
+roca_roja: roca roja erosionada con grietas (Geonosis, Crait)
+roca_volcanica: roca volcánica negra y porosa con grietas y brasas sutiles (Mustafar)
+placas_metal: suelo industrial de placas metálicas con juntas, remaches y suciedad (Coruscant)
+sal: costra de sal blanca con fisuras que dejan ver tierra roja (Crait)
+arena_playa: arena clara de playa tropical con conchitas (Scarif)
+suelo_hongos: suelo alienígena con musgo de colores vivos y esporas, sin violetas ni rosas (Felucia)
+camino: tierra compactada de camino con huellas (todos los planetas)
+roca_gris: roca granítica gris con grietas y líquenes (acantilados de varios planetas)
+grava: grava gris y marrón (Hoth, Mustafar)

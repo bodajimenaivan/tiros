@@ -1,0 +1,55 @@
+FICHA · NABOO REAL
+Carpeta: assets/models/naboo/ (los héroes van en assets/models/heroes/)
+Usala con las recetas del prompt principal. Personajes: .fbx (receta R2). Vehículos y no humanoides: .glb (R4). Edificios: .glb (R5).
+heavy_trooper es opcional: si falta, el juego usa trooper. Si dos vehículos son el mismo, guardá una copia con cada nombre.
+
+PERSONAJES (.fbx)
+worker: granjero de Naboo con ropa de lino marrón y sombrero. Magenta: pañuelo.
+trooper: guardia de seguridad real con gorra, chaleco acolchado azul marino, pantalón marrón y botas. Magenta: brazalete.
+heavy_trooper: guardia real de élite con armadura ligera. Magenta: capa corta.
+grenadier: guardia con mochila y cinturón de granadas. Magenta: brazalete.
+aa_trooper: guardia con casco y mochila de misiles. Magenta: brazalete.
+jedi_knight: padawan jedi con trenza y túnica clara corta. Magenta: faja.
+jedi_master: maestro jedi con túnica marrón hasta la rodilla. Magenta: faja.
+
+HÉROES (.fbx, en assets/models/heroes/, sin magenta)
+quigon: Qui-Gon Jinn, alto, pelo largo y barba, túnica jedi
+padme: Reina Padmé Amidala, vestido real rojo sin cola larga y tocado
+panaka: Capitán Panaka, uniforme de seguridad de Naboo con gorra de cuero
+
+VEHÍCULOS Y NAVES (.glb)
+scout: moto deslizadora dorada con guardia
+mounted_trooper: Flash speeder con guardia
+strike_mech: tanque repulsor ligero plateado y dorado
+mech_destroyer: tanque repulsor plateado con cañón de iones
+assault_mech: tanque pesado plateado de cuatro cañones
+pummel: ariete repulsor blindado plateado
+artillery: artillería real plateada
+aa_mobile: plataforma plateada de misiles antiaéreos
+fighter: caza N-1 de Naboo (amarillo y cromado)
+bomber: bombardero de Naboo
+trader: carguero de Naboo
+royal_crusader (única): Flash speeder con piloto de élite
+
+ESTILO DE LOS EDIFICIOS: Theed: piedra clara y dorada, cúpulas verdes de cobre, columnas y arcos, elegancia renacentista
+
+EDIFICIOS (.glb, receta R5; no hacer muros ni compuertas)
+command_center: centro de mando, el edificio principal y más grande
+shelter: vivienda prefabricada pequeña
+food_center: depósito de alimentos con silos
+farm: granja de humedad, parcela de cultivo baja y plana con un vaporizador
+carbon_center: depósito de carbono con pilas de material
+mining_center: centro de minería con cristales y mineral
+power_core: núcleo de energía, reactor o torre con brillo
+troop_center: cuartel de tropas
+mech_factory: fábrica de vehículos con portón grande
+research_center: laboratorio de investigación con antenas
+spaceport: puerto espacial con plataforma de aterrizaje
+turret: torreta bláster defensiva
+aa_turret: torreta antiaérea con lanzamisiles
+temple: templo de la Fuerza
+heavy_weapons: fábrica de armas pesadas
+airbase: base aérea con hangar
+shield_gen: generador de escudos con cúpula o antena
+fortress: fortaleza
+monument: monumento, la maravilla más espectacular de la civilización

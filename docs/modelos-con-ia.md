@@ -2,7 +2,7 @@
 
 Esta guía explica cómo usar ChatGPT, Gemini y otras herramientas para hacer texturas y modelos 3D de Star Wars. Cuando los tengas, súbelos al repositorio y yo los integro en el juego. Lo que no sustituyas sigue usando los modelos que genera el propio juego.
 
-> **La forma más fácil:** copia el texto completo de [`prompt-maestro.txt`](prompt-maestro.txt) y pégalo en ChatGPT o Gemini. Con eso la IA sabe qué hay que hacer, genera las imágenes y te va diciendo, paso a paso, qué hacer en cada herramienta (Meshy, Mixamo, Sketchfab, GitHub). Esta guía es la referencia detallada.
+> **La forma más fácil:** copia el texto de [`prompt-ia/0-principal.txt`](prompt-ia/0-principal.txt) y pégalo en ChatGPT o Gemini. Con eso la IA sabe qué hay que hacer, genera las imágenes y te va diciendo, paso a paso, qué hacer en cada herramienta (Meshy, Mixamo, Sketchfab, GitHub). Cuando necesite la lista de una civilización te pedirá su ficha (`prompt-ia/1-terreno.txt` a `9-wookiees.txt`). Cada archivo cabe en un mensaje (menos de 10.000 caracteres). Esta guía es la referencia detallada.
 
 ## 1. Qué hace cada herramienta
 
@@ -117,7 +117,7 @@ Carpeta de las animaciones: `assets/models/anims/`
 
 Carpeta: `assets/models/<civilización>/` (por ejemplo, `assets/models/empire/trooper.fbx`).
 
-Si falta el modelo pesado (`heavy_trooper`), el juego usa el normal (`trooper`) con otra arma. Cada civilización tiene también `grenadier` (granadero, con mochila de detonadores) y `aa_trooper` (antiaéreo, con mochila de misiles); las descripciones de cada uno están en `prompt-maestro.txt`.
+Si falta el modelo pesado (`heavy_trooper`), el juego usa el normal (`trooper`) con otra arma. Cada civilización tiene también `grenadier` (granadero, con mochila de detonadores) y `aa_trooper` (antiaéreo, con mochila de misiles); las descripciones de cada uno están en las fichas de `prompt-ia/`.
 
 **Imperio Galáctico** (`empire`)
 - `worker`: técnico imperial con mono gris oscuro, gorra imperial, cinturón de herramientas y chaleco con una franja de color de equipo en el hombro.
@@ -226,7 +226,7 @@ Carpeta: `assets/models/<civilización>/<archivo>.glb`
 | `heavy_bomber` | — | B-wing | Y-wing | Hyena | Hyena | Naboo bomber | — | ornitóptero |
 | `trader` | carguero imperial | carguero GR-75 | carguero | carguero droide | carguero | carguero de Naboo | carguero gungan | carguero de madera |
 
-Faltan en la tabla `pummel` (ariete: Juggernaut, MTT o ariete de madera) y `aa_mobile` (plataforma de misiles antiaérea); están en `prompt-maestro.txt`.
+Faltan en la tabla `pummel` (ariete: Juggernaut, MTT o ariete de madera) y `aa_mobile` (plataforma de misiles antiaérea); están en las fichas de `prompt-ia/`.
 
 Las únicas: `airspeeder` (rebeldes, aerodeslizador T-47 de Hoth), `royal_crusader` (Naboo, Flash speeder con piloto) y `fambaa` (gungans, fambaa con generador de escudo).
 

@@ -139,7 +139,7 @@ Puedes sustituir cualquier modelo o textura del suelo poniendo archivos en la ca
 - `assets/models/heroes/`: héroes.
 - `assets/models/anims/`: animaciones de Mixamo.
 
-El juego ajusta solo el tamaño, la orientación, el color de equipo (las zonas pintadas en magenta) y las animaciones. Al regenerar `Jugar.html` con `npm run build:single`, los archivos se incluyen dentro. Para crearlos con IA, pega el texto de `docs/prompt-maestro.txt` en ChatGPT o Gemini: la IA genera las imágenes y te guía paso a paso por Meshy, Mixamo, Sketchfab y GitHub. La guía `docs/modelos-con-ia.md` es la referencia detallada, con la lista de nombres de archivo.
+El juego ajusta solo el tamaño, la orientación, el color de equipo (las zonas pintadas en magenta) y las animaciones. Al regenerar `Jugar.html` con `npm run build:single`, los archivos se incluyen dentro. Para crearlos con IA, pega el texto de `docs/prompt-ia/0-principal.txt` en ChatGPT o Gemini: la IA genera las imágenes, te pide las fichas de cada civilización cuando las necesita y te guía paso a paso por Meshy, Mixamo, Sketchfab y GitHub (instrucciones en `docs/prompt-ia/LEEME.txt`). La guía `docs/modelos-con-ia.md` es la referencia detallada, con la lista de nombres de archivo.
 
 ## Música
 
