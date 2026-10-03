@@ -4,6 +4,7 @@
 //
 //   assets/terrain/<nombre>.jpg               texturas de suelo
 //   assets/models/<civ>/<unidad|edificio>.glb  modelos por civilización
+//   assets/models/<civ>/<unidad>.png          textura suelta del modelo del mismo nombre (opcional)
 //   assets/models/heroes/<héroe>.glb          héroes
 //   assets/models/anims/<acción>.fbx          animaciones de Mixamo compartidas
 import * as THREE from 'three';
@@ -22,10 +23,14 @@ export interface ExtModel {
   root: THREE.Object3D;
   skinned: boolean;
   clips: Map<string, THREE.AnimationClip>;
+  /** cadera del esqueleto, para adaptar las animaciones compartidas */
+  hips?: HipsFrame;
 }
 
 export const extModels = new Map<string, ExtModel>();
 const sharedClips = new Map<string, THREE.AnimationClip>();
+/** cadera del personaje con el que se descargó cada animación compartida */
+const sharedHips = new Map<string, HipsFrame>();
 let loading: Promise<void> | null = null;
 let loaded = false;
 
@@ -56,26 +61,53 @@ function actionKey(name: string): string | null {
   return null;
 }
 
+/** Cadera del esqueleto: eje vertical en el espacio de su padre y altura en reposo (unidades del archivo) */
+interface HipsFrame {
+  /** orientación del padre de la cadera en el mundo */
+  parentQ: THREE.Quaternion;
+  /** eje vertical en el espacio del padre */
+  up: THREE.Vector3;
+  restY: number;
+}
+
+function hipsFrame(obj: THREE.Object3D): HipsFrame | undefined {
+  let hips: THREE.Object3D | undefined;
+  obj.traverse((o) => {
+    if (!hips && boneName(o.name) === 'hips') hips = o;
+  });
+  if (!hips) return undefined;
+  obj.updateMatrixWorld(true);
+  // los archivos exportados desde Blender suelen tener el esqueleto con Z hacia arriba
+  const parentQ = hips.parent ? hips.parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion();
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(parentQ.clone().invert()).normalize();
+  const restY = hips.position.dot(up);
+  return restY > 0 ? { parentQ, up, restY } : undefined;
+}
+
 /** Prepara un clip: nombres de hueso canónicos y sin desplazamiento horizontal de la cadera */
-function prepClip(clip: THREE.AnimationClip, name: string): THREE.AnimationClip {
+function prepClip(clip: THREE.AnimationClip, name: string, up = new THREE.Vector3(0, 1, 0)): THREE.AnimationClip {
   const c = clip.clone();
   c.name = name;
   c.tracks = c.tracks.filter((t) => !/\.scale$/.test(t.name));
   for (const t of c.tracks) {
     const dot = t.name.lastIndexOf('.');
     const node = t.name.slice(0, dot), prop = t.name.slice(dot);
-    t.name = boneName(node.split('/').pop()!) + prop;
+    const bone = boneName(node.split('/').pop()!);
+    t.name = bone + prop;
     if (prop === '.position') {
-      if (!/hips$/.test(t.name)) {
+      if (bone !== 'hips') {
         t.name = '__drop__';
         continue;
       }
-      // animación en el sitio: X y Z de la cadera fijos
+      // animación en el sitio: solo se conserva el movimiento vertical de la cadera
       const v = t.values;
-      const x0 = v[0], z0 = v[2];
+      const p = new THREE.Vector3(v[0], v[1], v[2]);
+      const base = p.clone().addScaledVector(up, -p.dot(up));
       for (let i = 0; i < v.length; i += 3) {
-        v[i] = x0;
-        v[i + 2] = z0;
+        const h = p.set(v[i], v[i + 1], v[i + 2]).dot(up);
+        v[i] = base.x + up.x * h;
+        v[i + 1] = base.y + up.y * h;
+        v[i + 2] = base.z + up.z * h;
       }
     }
   }
@@ -154,6 +186,9 @@ export function loadExternalAssets(): Promise<void> {
   loading = (async () => {
     const jobs: Promise<void>[] = [];
     const texLoader = new THREE.TextureLoader();
+    // texturas sueltas de modelos (p. ej. trooper.png junto a trooper.fbx) y modelos FBX (otra orientación de UV)
+    const modelTex = new Map<string, THREE.Texture>();
+    const fbxKeys = new Set<string>();
     for (const [path, url] of Object.entries(FILES)) {
       const m = path.match(/^\/assets\/(.+)\/([^/]+)\.(\w+)$/);
       if (!m) continue;
@@ -168,28 +203,56 @@ export function loadExternalAssets(): Promise<void> {
         );
       } else if (dir === 'models/anims' && (ext === 'fbx' || ext === 'glb')) {
         jobs.push(
-          loadModel(url, ext).then(({ clips }) => {
+          loadModel(url, ext).then(({ obj, clips }) => {
             const key = actionKey(name) ?? name;
-            if (clips[0]) sharedClips.set(key, prepClip(clips[0], key));
+            if (!clips[0]) return;
+            const hf = hipsFrame(obj);
+            sharedClips.set(key, prepClip(clips[0], key, hf?.up));
+            if (hf) sharedHips.set(key, hf);
           }).catch((e) => console.warn('Animación no válida', path, e)),
+        );
+      } else if (dir.startsWith('models/') && ['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+        jobs.push(
+          texLoader.loadAsync(url).then((t) => {
+            t.colorSpace = THREE.SRGBColorSpace;
+            modelTex.set(dir.slice(7) + '/' + name, t);
+          }).catch((e) => console.warn('Textura no válida', path, e)),
         );
       } else if (dir.startsWith('models/') && (ext === 'fbx' || ext === 'glb')) {
         const key = dir.slice(7) + '/' + name;
+        if (ext === 'fbx') fbxKeys.add(key);
         jobs.push(
           loadModel(url, ext).then(({ obj, clips }) => {
             let skinned = false;
             obj.traverse((o) => { if ((o as THREE.SkinnedMesh).isSkinnedMesh) skinned = true; });
+            const hf = skinned ? hipsFrame(obj) : undefined;
             const own = new Map<string, THREE.AnimationClip>();
             for (const c of clips) {
               const k = actionKey(c.name);
-              if (k && !own.has(k)) own.set(k, prepClip(c, k));
+              if (k && !own.has(k)) own.set(k, prepClip(c, k, hf?.up));
             }
-            extModels.set(key, { key, root: normalize(obj), skinned, clips: own });
+            extModels.set(key, { key, root: normalize(obj), skinned, clips: own, hips: hf });
           }).catch((e) => console.warn('Modelo no válido', path, e)),
         );
       }
     }
     await Promise.all(jobs);
+    // una textura con el mismo nombre que el modelo sustituye a la suya (útil si Mixamo la perdió)
+    for (const [key, tex] of modelTex) {
+      const m = extModels.get(key);
+      if (!m) continue;
+      tex.flipY = fbxKeys.has(key);
+      m.root.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        for (const mat of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+          const sm = mat as THREE.MeshStandardMaterial;
+          sm.map = tex;
+          sm.color.set(0xffffff);
+          sm.needsUpdate = true;
+        }
+      });
+    }
     loaded = true;
     if (extModels.size || terrainPhotos.size) console.info(`Recursos propios: ${extModels.size} modelos, ${terrainPhotos.size} texturas, ${sharedClips.size} animaciones`);
   })();
@@ -434,6 +497,7 @@ export class ExtSkinnedBatch implements DrawBatch {
   private frame = 0;
   private matCache = new Map<number, Map<THREE.Material, THREE.Material>>();
   private weapon: THREE.Object3D | null;
+  private scaledClips = new Map<string, THREE.AnimationClip | undefined>();
 
   constructor(private src: ExtModel, private group: THREE.Group, height: number, radius: number, private shadows: boolean, weapon: THREE.Object3D | null, private melee: boolean, private pistol: boolean) {
     this.def = { height, radius };
@@ -450,10 +514,41 @@ export class ExtSkinnedBatch implements DrawBatch {
       melee: ['melee', 'shoot'], work: ['work', 'melee', 'idle'], death: ['death'],
     };
     for (const k of alt[key] ?? [key]) {
-      const c = this.src.clips.get(k) ?? sharedClips.get(k);
+      const own = this.src.clips.get(k);
+      if (own) return own;
+      const c = this.sharedFor(k);
       if (c) return c;
     }
     return undefined;
+  }
+
+  /** Animación compartida adaptada a este esqueleto: altura de la cadera (Yoda no flota, Chewbacca no se hunde) y orientación (Y o Z hacia arriba) */
+  private sharedFor(k: string): THREE.AnimationClip | undefined {
+    if (this.scaledClips.has(k)) return this.scaledClips.get(k);
+    let c = sharedClips.get(k);
+    const from = sharedHips.get(k), to = this.src.hips;
+    if (c && from && to) {
+      const ratio = to.restY / from.restY;
+      const conv = to.parentQ.clone().invert().multiply(from.parentQ);
+      const rotate = 1 - Math.abs(conv.w) > 1e-6;
+      if (rotate || Math.abs(ratio - 1) > 0.02) {
+        c = c.clone();
+        const v = new THREE.Vector3(), q = new THREE.Quaternion();
+        for (const t of c.tracks) {
+          if (t.name === 'hips.position') {
+            t.values = t.values.slice();
+            for (let i = 0; i < t.values.length; i += 3) {
+              v.fromArray(t.values, i).applyQuaternion(conv).multiplyScalar(ratio).toArray(t.values, i);
+            }
+          } else if (rotate && t.name === 'hips.quaternion') {
+            t.values = t.values.slice();
+            for (let i = 0; i < t.values.length; i += 4) q.fromArray(t.values, i).premultiply(conv).toArray(t.values, i);
+          }
+        }
+      }
+    }
+    this.scaledClips.set(k, c);
+    return c;
   }
 
   private make(color: THREE.Color): SkinUnit {
