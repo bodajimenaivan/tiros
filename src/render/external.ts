@@ -386,18 +386,34 @@ export class ExtStaticBatch implements DrawBatch {
   private geos: THREE.BufferGeometry[] = [];
   private mats: THREE.Material[] = [];
 
-  constructor(src: ExtModel, private group: THREE.Group, height: number, radius: number, bob: boolean, private shadows: boolean) {
-    this.def = { height, radius };
-    this.hasBob = bob;
+  /** fitFootprint: los edificios se escalan para no salirse de su parcela (sin pasar de 1,5 veces la altura del generado) */
+  constructor(src: ExtModel, private group: THREE.Group, height: number, radius: number, bob: boolean, private shadows: boolean, fitFootprint = false) {
     src.root.updateMatrixWorld(true);
+    let scale = height;
+    if (fitFootprint) {
+      let r = 0;
+      const v = new THREE.Vector3();
+      src.root.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const pos = mesh.geometry.getAttribute('position');
+        for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+          r = Math.max(r, Math.hypot(v.x, v.z));
+        }
+      });
+      if (r > 0) scale = Math.min(radius / r, height * 1.5);
+    }
+    this.def = { height: scale, radius };
+    this.hasBob = bob;
     src.root.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      // escala de la altura normalizada (1) a la altura del modelo del juego
+      // escala de la altura normalizada (1) a la del juego
       const g = mesh.geometry.clone();
       g.applyMatrix4(mesh.matrixWorld);
-      g.applyMatrix4(new THREE.Matrix4().makeScale(height, height, height));
+      g.applyMatrix4(new THREE.Matrix4().makeScale(scale, scale, scale));
       if (mats.length > 1 && g.groups.length) {
         // un lote por material
         for (const gr of g.groups) {

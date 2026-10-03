@@ -418,7 +418,7 @@ export class GameRenderer {
     let b = this.batches.get(key);
     if (b) return b;
     const def = this.model(key, () => buildBuildingModel(defId, p.civ.style), lod);
-    if (ext && !ext.skinned) b = new ExtStaticBatch(ext, this.unitGroup, def.height, def.radius, false, this.settings.shadows);
+    if (ext && !ext.skinned) b = new ExtStaticBatch(ext, this.unitGroup, def.height, def.radius, false, this.settings.shadows, true);
     else b = new ModelBatch(def, this.unitGroup, this.material, { shadows: this.settings.shadows, holo: this.holoMat });
     this.batches.set(key, b);
     return b;
