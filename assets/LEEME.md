@@ -12,4 +12,5 @@ También se incluyen dentro de `Jugar.html` al regenerarlo con `npm run build:si
 
 Carpetas de civilización: `empire`, `rebels`, `republic`, `cis`, `tradefed`, `naboo`, `gungans` y `wookiees`.
 
-Los nombres de archivo y los prompts para crearlos están en `docs/modelos-con-ia.md`.
+Para crearlos con IA, pega el texto de `docs/prompt-maestro.txt` en ChatGPT o Gemini: te guía paso a paso.
+La referencia detallada (nombres de archivo y prompts) está en `docs/modelos-con-ia.md`.

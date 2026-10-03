@@ -2,6 +2,8 @@
 
 Esta guía explica cómo usar ChatGPT, Gemini y otras herramientas para hacer texturas y modelos 3D de Star Wars. Cuando los tengas, súbelos al repositorio y yo los integro en el juego. Lo que no sustituyas sigue usando los modelos que genera el propio juego.
 
+> **La forma más fácil:** copia el texto completo de [`prompt-maestro.txt`](prompt-maestro.txt) y pégalo en ChatGPT o Gemini. Con eso la IA sabe qué hay que hacer, genera las imágenes y te va diciendo, paso a paso, qué hacer en cada herramienta (Meshy, Mixamo, Sketchfab, GitHub). Esta guía es la referencia detallada.
+
 ## 1. Qué hace cada herramienta
 
 | Herramienta | Para qué sirve | Coste |
@@ -24,13 +26,14 @@ No hace falta hacerlo todo: cada archivo que añadas sustituye a su modelo y el 
 
 - **Dónde:** en la carpeta `assets/` del repositorio. En GitHub, entra en la subcarpeta que corresponda (`assets/terrain`, `assets/models/empire`...) y pulsa **Add file → Upload files**. También puedes adjuntarlos en el chat.
 - **Nombres:** exactamente los de las listas de abajo, en minúsculas y sin espacios.
-- **Formatos:** texturas en `.jpg` o `.png`; modelos en `.glb` o `.fbx`. Un `.gltf` con archivos aparte no sirve; si te lo dan así, pide la versión `.glb`.
+- **Formatos:** texturas en `.jpg` o `.png`. Los personajes con esqueleto, en `.fbx` tal como salen de Mixamo (sin convertirlos), para que compartan las animaciones. El resto de modelos, en `.glb`. Un `.gltf` con archivos aparte no sirve; si te lo dan así, pide la versión `.glb`.
 - **Compresión:** sin compresión Draco. Si la herramienta ofrece *Draco*, desactívalo.
 - **Tamaño de los archivos:** todo se mete dentro de `Jugar.html`, así que conviene que pesen poco. Texturas en JPG de 1024×1024 o 2048×2048, de menos de 1 MB cada una. Modelos de menos de 5 MB.
 - **Polígonos:** en Meshy o Tripo, elige *Low poly* o pon un límite de polígonos.
-  - Soldados y trabajadores: hasta 6.000 triángulos.
-  - Héroes: hasta 10.000 triángulos.
-  - Vehículos y naves: hasta 15.000 triángulos.
+  - Soldados y trabajadores: de 5.000 a 8.000 triángulos.
+  - Héroes: hasta 12.000 triángulos.
+  - Vehículos y naves: hasta 20.000 triángulos.
+  - Edificios: hasta 25.000 triángulos.
 - **Texturas del modelo:** incluidas dentro del `.glb`, de 1024×1024 (2048 como máximo para héroes).
 - **Escala y orientación:** da igual el tamaño, lo ajusto yo. El modelo tiene que estar de pie y mirando al frente.
 - **Color del jugador:** pinta de **magenta puro (#FF00FF)** las zonas que deben llevar el color de cada jugador, como franjas, hombreras o estandartes. El juego cambia ese magenta por el color del jugador.
@@ -58,7 +61,6 @@ No hace falta mapa de normales: lo genero yo a partir de la imagen.
 | `tierra_roja.jpg` | tierra rojiza polvorienta con guijarros | Geonosis |
 | `roca_roja.jpg` | roca roja erosionada con grietas | acantilados de Geonosis |
 | `roca_volcanica.jpg` | roca volcánica negra y porosa con grietas | Mustafar |
-| `lava.jpg` | lava incandescente naranja con placas de costra negra | Mustafar |
 | `placas_metal.jpg` | suelo industrial de placas metálicas con juntas, remaches y suciedad | Coruscant |
 | `sal.jpg` | costra de sal blanca con fisuras que dejan ver tierra roja | Crait |
 | `arena_playa.jpg` | arena clara de playa tropical con conchas pequeñas | Scarif |
@@ -91,6 +93,7 @@ Las armas no hacen falta: las hago yo y se las pongo en la mano. Los personajes 
 1. Sube el `.fbx` a Mixamo.
 2. Coloca los marcadores que pide: barbilla, muñecas, codos, rodillas e ingle.
 3. Descarga el personaje con **Format: FBX** y **Skin: With Skin**, en la pose T.
+   Si en Mixamo se ve gris (ha perdido la textura), guarda la textura de Meshy con el mismo nombre al lado, por ejemplo `trooper.png` junto a `trooper.fbx`. El juego la aplica sola.
 4. Si el personaje no es humanoide (un droideka, por ejemplo), sáltate este paso y entrégame el `.glb` del paso 2.
 
 ### Paso 4: animaciones (solo una vez para todos)
@@ -114,7 +117,7 @@ Carpeta de las animaciones: `assets/models/anims/`
 
 Carpeta: `assets/models/<civilización>/` (por ejemplo, `assets/models/empire/trooper.fbx`).
 
-Si falta el modelo pesado (`heavy_trooper`), el juego usa el normal (`trooper`) con otra arma.
+Si falta el modelo pesado (`heavy_trooper`), el juego usa el normal (`trooper`) con otra arma. Cada civilización tiene también `grenadier` (granadero, con mochila de detonadores) y `aa_trooper` (antiaéreo, con mochila de misiles); las descripciones de cada uno están en `prompt-maestro.txt`.
 
 **Imperio Galáctico** (`empire`)
 - `worker`: técnico imperial con mono gris oscuro, gorra imperial, cinturón de herramientas y chaleco con una franja de color de equipo en el hombro.
@@ -223,6 +226,8 @@ Carpeta: `assets/models/<civilización>/<archivo>.glb`
 | `heavy_bomber` | — | B-wing | Y-wing | Hyena | Hyena | Naboo bomber | — | ornitóptero |
 | `trader` | carguero imperial | carguero GR-75 | carguero | carguero droide | carguero | carguero de Naboo | carguero gungan | carguero de madera |
 
+Faltan en la tabla `pummel` (ariete: Juggernaut, MTT o ariete de madera) y `aa_mobile` (plataforma de misiles antiaérea); están en `prompt-maestro.txt`.
+
 Las únicas: `airspeeder` (rebeldes, aerodeslizador T-47 de Hoth), `royal_crusader` (Naboo, Flash speeder con piloto) y `fambaa` (gungans, fambaa con generador de escudo).
 
 ## 7. Qué hace el juego con los archivos
@@ -233,5 +238,6 @@ El juego ya está preparado para recibirlos:
 - **Ajustes automáticos.** El tamaño, la orientación y el color de equipo (el magenta) se ajustan solos.
 - **Armas y animaciones.** A los personajes con esqueleto les pone un arma en la mano derecha (rifle, pistola o sable según la unidad) y les asigna las animaciones: reposo, andar, disparar, cuerpo a cuerpo, trabajar y morir.
 - **Unidades derivadas.** Si falta el modelo de una unidad pesada o de élite, usa el de la normal.
-- **Edificios.** Admiten modelo propio con el mismo sistema, por ejemplo `assets/models/empire/command_center.glb`.
+- **Edificios.** Admiten modelo propio con el mismo sistema, por ejemplo `assets/models/empire/command_center.glb`. Se escalan para caber en su parcela. Los muros y compuertas no: se arman por tramos.
+- **Animaciones a medida.** Las animaciones compartidas se adaptan a la altura de cada personaje, así que Yoda no flota y Chewbacca no se hunde.
 - **Doble clic.** Al regenerar `Jugar.html` (`npm run build:single`), los archivos van dentro y siguen funcionando con doble clic. Si los subes a GitHub, yo lo regenero.
